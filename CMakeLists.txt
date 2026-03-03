@@ -1,13 +1,50 @@
 cmake_minimum_required(VERSION 3.14)
 
-file(GLOB_RECURSE src "*.cpp")
-file(GLOB_RECURSE common_src "${CMAKE_SOURCE_DIR}/common/src/*.cpp")
-add_executable(orbital-engine ${src} ${common_src})
+project(orbital_core)
 
-# target_link_libraries(orbital PRIVATE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard")
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CPM_USE_LOCAL_PACKAGES ON)
+
+include(cmake/CPM.cmake)
+CPMUsePackageLock(package-lock.cmake)
+CPMGetPackage(EnTT)
+
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if (MSVC)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi /Od")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -g3 -O0")
+    endif()
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Asan")
+    if (MSVC)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi /Od")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0 -fsanitize=address")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -g3 -O0 -fsanitize=address")
+    endif()
+endif()
+
+
+add_executable(orbital-engine
+    src/main.cpp
+)
+
+target_link_libraries(orbital-engine PRIVATE EnTT::EnTT)
 
 target_include_directories(orbital-engine PRIVATE
-    ${CMAKE_SOURCE_DIR}/common/include
     ${CMAKE_CURRENT_SOURCE_DIR}/
 )
 

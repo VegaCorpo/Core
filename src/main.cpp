@@ -1,4 +1,5 @@
 #include <iostream>
+#include "entt/entity/fwd.hpp"
 
 int main(int argc, char* argv[])
 {
