@@ -1,8 +1,6 @@
-#include <iostream>
-#include "entt/entity/fwd.hpp"
+#include <cstdlib>
 
-int main(int argc, char* argv[])
+int main(int const argc, char const* argv[])
 {
-    std::cout << "Hello from Engine" << std::endl;
-    return 0;
+    return EXIT_SUCCESS;
 }
