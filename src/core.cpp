@@ -1,7 +1,10 @@
+#include <chrono>
 #include <components/acceleration.hpp>
 #include <components/mass.hpp>
 #include <components/position.hpp>
 #include <components/velocity.hpp>
+#include <iostream>
+#include <thread>
 
 #include "core.hpp"
 
@@ -31,4 +34,35 @@ void core::Simulation::initializeCore()
     this->_registry.emplace<components::Acceleration>(sunEntity, components::Acceleration(0, 0));
     this->_registry.emplace<components::Position>(sunEntity, components::Position(0.0f, 0.f, 0.f));
     this->_registry.emplace<components::Velocity>(sunEntity, components::Velocity(0.f, 0.f, 0.f));
+}
+
+void core::Simulation::launchSimulation()
+{
+    std::thread physicsThread(&core::Simulation::_launchPhysics, this);
+    std::thread rendererThread(&core::Simulation::_launchRenderer, this);
+
+    physicsThread.join();
+    rendererThread.join();
+}
+
+void core::Simulation::_launchPhysics()
+{
+    auto threshold = 1;
+    auto prev = std::chrono::system_clock::now();
+    while (this->is_running) {
+        auto time = std::chrono::system_clock::now();
+        std::chrono::duration<double> deltaTime = time - prev;
+        prev = time;
+        this->accumulator += deltaTime.count();
+        if (this->accumulator >= threshold) {
+            // Update cpy transform data
+            std::cout << "Time = " << std::chrono::system_clock::now() << "\n";
+            accumulator -= threshold;
+        }
+    }
+}
+
+void core::Simulation::_launchRenderer()
+{
+    std::cout << "thread Launch for renderer\n";
 }
