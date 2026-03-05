@@ -5,7 +5,9 @@
 #include <components/velocity.hpp>
 #include <mutex>
 #include <thread>
+#include "SharedLoader/SharedLoader.hpp"
 
+#include <iostream>
 #include "core.hpp"
 
 constexpr float EARTH_MANTISSA = 5.97;
@@ -15,7 +17,7 @@ constexpr int MOON_EXPONENT = 22;
 constexpr float SUN_MANTISSA = 1.98;
 constexpr int SUN_EXPONENT = 30;
 
-void core::Simulation::initializeCore()
+core::SimulationState core::Simulation::initializeCore() noexcept
 {
     const auto earthEntity = this->_registry.create();
     this->_registry.emplace<components::Mass>(earthEntity, components::Mass(EARTH_MANTISSA, EARTH_EXPONENT));
@@ -34,6 +36,36 @@ void core::Simulation::initializeCore()
     this->_registry.emplace<components::Acceleration>(sunEntity, components::Acceleration(0, 0));
     this->_registry.emplace<components::Position>(sunEntity, components::Position(0.0f, 0.f, 0.f));
     this->_registry.emplace<components::Velocity>(sunEntity, components::Velocity(0.f, 0.f, 0.f));
+
+    // auto state = this->_loadEngines();
+    // if (state != core::SimulationState::OK) {
+    //     return state;
+    // }
+
+    utils::SharedLoader loader;
+    loader.open("Renderer/librenderer.so", "renderer");
+    return core::SimulationState::OK;
+}
+
+core::SimulationState core::Simulation::_loadEngines() noexcept
+{
+    // if (this->_loadPhysics() != core::SimulationState::OK) {
+    //     return core::SimulationState::INITIALIZATION_ERROR;
+    // }
+    // if (this->_loadRenderer() != core::SimulationState::OK) {
+    //     return core::SimulationState::INITIALIZATION_ERROR;
+    // }
+    // if (this->_loadUI() != core::SimulationState::OK) {
+    //     return core::SimulationState::INITIALIZATION_ERROR;
+    // }
+    // if (this->_loadInputs() != core::SimulationState::OK) {
+    //     return core::SimulationState::INITIALIZATION_ERROR;
+    // }
+    // if (this->_loadLoader() != core::SimulationState::OK) {
+    //     return core::SimulationState::INITIALIZATION_ERROR;
+    // }
+
+    return core::SimulationState::OK;
 }
 
 void core::Simulation::launchSimulation()

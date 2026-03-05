@@ -5,28 +5,23 @@
 // DlFunctions.cpp
 //
 
-#include "DlUtils.hpp"
+#include "SharedLoader.hpp"
+#include <boost/dll/import.hpp>
 #include <iostream>
 #include <string>
-#include "dlfcn.h"
 #include "types/types.hpp"
 
-void utils::DlUtils::open(const std::string& pathToLib, const std::string& libName)
+void utils::SharedLoader::open(const std::string& pathToLib, const std::string& libName)
 {
-    void* lib = dlopen(pathToLib.c_str(), RTLD_LAZY);
-    if (lib == nullptr)
-        throw DlUtilsError(dlerror());
-    this->_loadedLib[libName] = lib;
+    boost::dll::fs::path lib_path = pathToLib;
+    std::cout << "Hello from open" << std::endl;
+    // this->_loadedLib[libName] = lib;
 }
 
-void utils::DlUtils::close(const std::string& libName)
-{
-    if (this->_loadedLib.find(libName) == this->_loadedLib.end() || dlclose(this->_loadedLib[libName]) != 0)
-        throw DlUtilsError(dlerror());
-    this->_loadedLib.erase(libName);
-}
+void utils::SharedLoader::close(const std::string& libName)
+{}
 
-// common::ModuleType utils::DlUtils::getModuleType(void* lib)
+// common::ModuleType utils::SharedLoader::getModuleType(void* lib)
 // {
 //     auto* const module = reinterpret_cast<common::ModuleType (*)()>(dlsym(lib, "get_module_type"));
 //     if (module == nullptr)

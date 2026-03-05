@@ -1,16 +1,17 @@
 #pragma once
 
+#include <any>
 #include <functional>
 #include <string>
 #include <unordered_map>
 #include "types/types.hpp"
 
 namespace utils {
-    class DlUtils {
+    class SharedLoader {
         public:
-            class DlUtilsError : public std::exception {
+            class SharedLoaderError : public std::exception {
                 public:
-                    DlUtilsError(std::string msg) : _msg(std::move(msg)) {}
+                    explicit SharedLoaderError(std::string msg) : _msg(std::move(msg)) {}
 
                     [[nodiscard]] const char* what() const noexcept override { return this->_msg.c_str(); };
 
@@ -22,9 +23,10 @@ namespace utils {
             void close(const std::string& libName);
 
         private:
-            static common::ModuleType getModuleType(void* lib);
-            std::unordered_map<std::string, void*> _loadedLib;
-            std::unordered_map<std::string, void*> _functions;
+            // static common::ModuleType getModuleType(std::function<std::any> lib);
+
+            std::unordered_map<std::string, std::function<std::any(std::any)>> _loadedLib;
+            std::unordered_map<std::string, std::function<std::any(std::any)>> _functions;
     };
 
 } // namespace utils
