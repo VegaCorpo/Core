@@ -1,7 +1,10 @@
+#include <chrono>
 #include <components/acceleration.hpp>
 #include <components/mass.hpp>
 #include <components/position.hpp>
 #include <components/velocity.hpp>
+#include <mutex>
+#include <thread>
 
 #include "core.hpp"
 
@@ -31,4 +34,54 @@ void core::Simulation::initializeCore()
     this->_registry.emplace<components::Acceleration>(sunEntity, components::Acceleration(0, 0));
     this->_registry.emplace<components::Position>(sunEntity, components::Position(0.0f, 0.f, 0.f));
     this->_registry.emplace<components::Velocity>(sunEntity, components::Velocity(0.f, 0.f, 0.f));
+}
+
+void core::Simulation::launchSimulation()
+{
+    std::thread physicsThread(&core::Simulation::_launchPhysics, this);
+    std::thread rendererThread(&core::Simulation::_launchRenderer, this);
+
+    physicsThread.detach();
+    rendererThread.detach();
+
+    auto prev = std::chrono::high_resolution_clock::now();
+    while (this->is_running) {
+        auto time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> deltaTime = time - prev;
+        prev = time;
+        {
+            std::scoped_lock lock(this->physicsMutex);
+            this->physicsAccumulator += deltaTime.count();
+        }
+        {
+            std::scoped_lock lock(this->rendererMutex);
+            this->rendererAccumulator += deltaTime.count();
+        }
+    }
+}
+
+void core::Simulation::_launchPhysics()
+{
+    while (this->is_running) {
+        {
+            std::scoped_lock lock(this->physicsMutex);
+            if (this->physicsAccumulator >= this->physicsThreshold) {
+                // Update cpy transform data
+                this->physicsAccumulator = 0;
+            }
+        }
+    }
+}
+
+void core::Simulation::_launchRenderer()
+{
+    while (this->is_running) {
+        {
+            std::scoped_lock lock(this->rendererMutex);
+            if (this->rendererAccumulator >= this->rendererThreshold) {
+                // render operation
+                this->rendererAccumulator = 0;
+            }
+        }
+    }
 }
