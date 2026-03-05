@@ -41,9 +41,12 @@ core::SimulationState core::Simulation::initializeCore() noexcept
     // if (state != core::SimulationState::OK) {
     //     return state;
     // }
+    using EngineFactory = std::function<std::unique_ptr<std::any>()>;
 
     utils::SharedLoader loader;
     loader.load<std::function<std::unique_ptr<std::any>()>>("plugins/Renderer/liborbital_render", "renderer");
+    auto renderApi = loader.get<EngineFactory>("renderer");
+    auto renderEngine = renderApi();
     return core::SimulationState::OK;
 }
 

@@ -3,6 +3,7 @@
 #include <any>
 #include <boost/dll/import.hpp>
 #include <boost/dll/shared_library_load_mode.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
 #include <format>
 #include <functional>
 #include <iostream>
@@ -41,6 +42,15 @@ namespace utils {
                     throw SharedLoaderError(std::format("Library loading failed {}", error.what()));
                 }
             };
+
+            template <typename T>
+            T& get(const std::string& libName)
+            {
+                if (this->_loadedLib.find(libName) == this->_loadedLib.end()) {
+                    throw SharedLoaderError("Symbol not found");
+                }
+                return *std::any_cast<boost::shared_ptr<T>>(this->_loadedLib[libName]);
+            }
 
         private:
             std::unordered_map<std::string, std::any> _loadedLib;
