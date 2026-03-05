@@ -3,7 +3,6 @@
 #include <components/mass.hpp>
 #include <components/position.hpp>
 #include <components/velocity.hpp>
-#include <iostream>
 #include <mutex>
 #include <thread>
 
@@ -52,7 +51,11 @@ void core::Simulation::launchSimulation()
         prev = time;
         {
             std::scoped_lock lock(this->physicsMutex);
-            this->accumulatorPhysics += deltaTime.count();
+            this->physicsAccumulator += deltaTime.count();
+        }
+        {
+            std::scoped_lock lock(this->rendererMutex);
+            this->rendererAccumulator += deltaTime.count();
         }
     }
 }
@@ -63,9 +66,9 @@ void core::Simulation::_launchPhysics()
     while (this->is_running) {
         {
             std::scoped_lock lock(this->physicsMutex);
-            if (this->accumulatorPhysics >= threshold) {
+            if (this->physicsAccumulator >= threshold) {
                 // Update cpy transform data
-                this->accumulatorPhysics -= threshold;
+                this->physicsAccumulator -= threshold;
             }
         }
     }
@@ -73,5 +76,14 @@ void core::Simulation::_launchPhysics()
 
 void core::Simulation::_launchRenderer()
 {
-    std::cout << "thread Launch for renderer\n";
+    auto threshold = 0.016;
+    while (this->is_running) {
+        {
+            std::scoped_lock lock(this->rendererMutex);
+            if (this->rendererAccumulator >= threshold) {
+                // render operation
+                this->rendererAccumulator -= threshold;
+            }
+        }
+    }
 }

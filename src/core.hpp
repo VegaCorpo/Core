@@ -13,8 +13,12 @@ namespace core {
             void _launchRenderer();
 
             entt::registry _registry;
-            double accumulatorPhysics = 0.0;
+
+            double physicsAccumulator = 0.0;
             std::mutex physicsMutex;
+
+            double rendererAccumulator = 0.0;
+            std::mutex rendererMutex;
             
             bool is_running = true;
     };
