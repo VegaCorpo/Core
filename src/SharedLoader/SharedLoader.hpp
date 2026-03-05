@@ -1,7 +1,12 @@
 #pragma once
 
 #include <any>
+#include <boost/dll/import.hpp>
+#include <boost/dll/shared_library_load_mode.hpp>
+#include <format>
 #include <functional>
+#include <iostream>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include "types/types.hpp"
@@ -19,14 +24,26 @@ namespace utils {
                     std::string _msg;
             };
 
-            void open(const std::string& pathToLib, const std::string& libName);
-            void close(const std::string& libName);
+            template <typename T>
+            void load(const std::string& pathToLib, const std::string& libName)
+            {
+                try {
+                    boost::dll::fs::path lib_path = pathToLib;
+                    auto module =
+                        boost::dll::import_symbol<T>(lib_path, "get_engine", boost::dll::load_mode::append_decorations);
+
+                    if (module == nullptr) {
+                        throw SharedLoaderError("Unable to load lib");
+                    }
+                    this->_loadedLib[libName] = module;
+                }
+                catch (const boost::wrapexcept<boost::system::system_error>& error) {
+                    throw SharedLoaderError(std::format("Library loading failed {}", error.what()));
+                }
+            };
 
         private:
-            // static common::ModuleType getModuleType(std::function<std::any> lib);
-
-            std::unordered_map<std::string, std::function<std::any(std::any)>> _loadedLib;
-            std::unordered_map<std::string, std::function<std::any(std::any)>> _functions;
+            std::unordered_map<std::string, std::any> _loadedLib;
     };
 
 } // namespace utils

@@ -43,7 +43,6 @@ endif()
 add_executable(orbital-engine
     src/main.cpp
     src/core.cpp
-    src/SharedLoader/SharedLoader.cpp
 )
 
 add_library(Common INTERFACE)

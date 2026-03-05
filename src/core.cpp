@@ -43,7 +43,7 @@ core::SimulationState core::Simulation::initializeCore() noexcept
     // }
 
     utils::SharedLoader loader;
-    loader.open("Renderer/librenderer.so", "renderer");
+    loader.load<std::function<std::unique_ptr<std::any>()>>("plugins/Renderer/liborbital_render", "renderer");
     return core::SimulationState::OK;
 }
 
