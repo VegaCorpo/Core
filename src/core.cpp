@@ -75,7 +75,6 @@ void core::Simulation::_launchPhysics()
 
 void core::Simulation::_launchRenderer()
 {
-    auto threshold = 0.016;
     while (this->is_running) {
         {
             std::scoped_lock lock(this->rendererMutex);
