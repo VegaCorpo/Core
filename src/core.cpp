@@ -4,6 +4,7 @@
 #include <components/position.hpp>
 #include <components/velocity.hpp>
 #include <iostream>
+#include <mutex>
 #include <thread>
 
 #include "core.hpp"
@@ -41,23 +42,31 @@ void core::Simulation::launchSimulation()
     std::thread physicsThread(&core::Simulation::_launchPhysics, this);
     std::thread rendererThread(&core::Simulation::_launchRenderer, this);
 
-    physicsThread.join();
-    rendererThread.join();
+    physicsThread.detach();
+    rendererThread.detach();
+
+    auto prev = std::chrono::high_resolution_clock::now();
+    while (this->is_running) {
+        auto time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> deltaTime = time - prev;
+        prev = time;
+        {
+            std::scoped_lock lock(this->physicsMutex);
+            this->accumulatorPhysics += deltaTime.count();
+        }
+    }
 }
 
 void core::Simulation::_launchPhysics()
 {
     auto threshold = 1;
-    auto prev = std::chrono::system_clock::now();
     while (this->is_running) {
-        auto time = std::chrono::system_clock::now();
-        std::chrono::duration<double> deltaTime = time - prev;
-        prev = time;
-        this->accumulator += deltaTime.count();
-        if (this->accumulator >= threshold) {
-            // Update cpy transform data
-            std::cout << "Time = " << std::chrono::system_clock::now() << "\n";
-            accumulator -= threshold;
+        {
+            std::scoped_lock lock(this->physicsMutex);
+            if (this->accumulatorPhysics >= threshold) {
+                // Update cpy transform data
+                this->accumulatorPhysics -= threshold;
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <entt/entity/registry.hpp>
+#include <mutex>
 
 namespace core {
     class Simulation {
@@ -12,7 +13,8 @@ namespace core {
             void _launchRenderer();
 
             entt::registry _registry;
-            double accumulator = 0;
+            double accumulatorPhysics = 0.0;
+            std::mutex physicsMutex;
             
             bool is_running = true;
     };
