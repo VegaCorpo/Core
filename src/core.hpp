@@ -14,9 +14,11 @@ namespace core {
 
             entt::registry _registry;
 
+            double physicsThreshold = 1;
             double physicsAccumulator = 0.0;
             std::mutex physicsMutex;
 
+            double rendererThreshold = 0.016;
             double rendererAccumulator = 0.0;
             std::mutex rendererMutex;
             

@@ -62,13 +62,12 @@ void core::Simulation::launchSimulation()
 
 void core::Simulation::_launchPhysics()
 {
-    auto threshold = 1;
     while (this->is_running) {
         {
             std::scoped_lock lock(this->physicsMutex);
-            if (this->physicsAccumulator >= threshold) {
+            if (this->physicsAccumulator >= this->physicsThreshold) {
                 // Update cpy transform data
-                this->physicsAccumulator -= threshold;
+                this->physicsAccumulator = 0;
             }
         }
     }
@@ -80,9 +79,9 @@ void core::Simulation::_launchRenderer()
     while (this->is_running) {
         {
             std::scoped_lock lock(this->rendererMutex);
-            if (this->rendererAccumulator >= threshold) {
+            if (this->rendererAccumulator >= this->rendererThreshold) {
                 // render operation
-                this->rendererAccumulator -= threshold;
+                this->rendererAccumulator = 0;
             }
         }
     }
