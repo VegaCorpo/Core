@@ -3,6 +3,7 @@
 #include <components/mass.hpp>
 #include <components/position.hpp>
 #include <components/velocity.hpp>
+#include <entt/entity/fwd.hpp>
 #include <mutex>
 #include <thread>
 #include "SharedLoader/SharedLoader.hpp"
@@ -19,54 +20,16 @@ constexpr int SUN_EXPONENT = 30;
 
 core::SimulationState core::Simulation::initializeCore() noexcept
 {
-    const auto earthEntity = this->_registry.create();
-    this->_registry.emplace<components::Mass>(earthEntity, components::Mass(EARTH_MANTISSA, EARTH_EXPONENT));
-    this->_registry.emplace<components::Acceleration>(earthEntity, components::Acceleration(0, 0));
-    this->_registry.emplace<components::Position>(earthEntity, components::Position(149597870.f, 0.f, 0.f));
-    this->_registry.emplace<components::Velocity>(earthEntity, components::Velocity(0.f, 0.f, 0.f));
 
-    const auto moonEntity = this->_registry.create();
-    this->_registry.emplace<components::Mass>(moonEntity, components::Mass(MOON_MANTISSA, MOON_EXPONENT));
-    this->_registry.emplace<components::Acceleration>(moonEntity, components::Acceleration(0, 0));
-    this->_registry.emplace<components::Position>(moonEntity, components::Position(149213470.f, 0.f, 0.f));
-    this->_registry.emplace<components::Velocity>(moonEntity, components::Velocity(0.f, 0.f, 0.f));
-
-    const auto sunEntity = this->_registry.create();
-    this->_registry.emplace<components::Mass>(sunEntity, components::Mass(SUN_MANTISSA, SUN_EXPONENT));
-    this->_registry.emplace<components::Acceleration>(sunEntity, components::Acceleration(0, 0));
-    this->_registry.emplace<components::Position>(sunEntity, components::Position(0.0f, 0.f, 0.f));
-    this->_registry.emplace<components::Velocity>(sunEntity, components::Velocity(0.f, 0.f, 0.f));
-
-    // auto state = this->_loadEngines();
-    // if (state != core::SimulationState::OK) {
-    //     return state;
-    // }
-    using EngineFactory = std::function<std::unique_ptr<std::any>()>;
-
-    utils::SharedLoader loader;
-    loader.load<std::function<std::unique_ptr<std::any>()>>("plugins/Renderer/liborbital_render", "renderer");
-    auto renderApi = loader.get<EngineFactory>("renderer");
-    auto renderEngine = renderApi();
+    this->_loadEngines();
     return core::SimulationState::OK;
 }
 
 core::SimulationState core::Simulation::_loadEngines() noexcept
 {
-    // if (this->_loadPhysics() != core::SimulationState::OK) {
-    //     return core::SimulationState::INITIALIZATION_ERROR;
-    // }
-    // if (this->_loadRenderer() != core::SimulationState::OK) {
-    //     return core::SimulationState::INITIALIZATION_ERROR;
-    // }
-    // if (this->_loadUI() != core::SimulationState::OK) {
-    //     return core::SimulationState::INITIALIZATION_ERROR;
-    // }
-    // if (this->_loadInputs() != core::SimulationState::OK) {
-    //     return core::SimulationState::INITIALIZATION_ERROR;
-    // }
-    // if (this->_loadLoader() != core::SimulationState::OK) {
-    //     return core::SimulationState::INITIALIZATION_ERROR;
-    // }
+
+    this->_loader.load<void(void*, double)>("plugins/Physics/liborbital_physics", "physicsUpdate", "physicsUpdate");
+    this->_loader.load<std::string()>("plugins/Physics/liborbital_physics", "getName", "getName");
 
     return core::SimulationState::OK;
 }
@@ -101,8 +64,11 @@ void core::Simulation::_launchPhysics()
         {
             std::scoped_lock lock(this->physicsMutex);
             if (this->physicsAccumulator >= this->physicsThreshold) {
-                // Update cpy transform data
                 this->physicsAccumulator = 0;
+                auto getName = this->_loader.get<std::string()>("getName");
+                std::cout << getName() << std::endl;
+                auto updatePhysics = this->_loader.get<void(void*, double)>("physicsUpdate");
+                updatePhysics(&this->_registry, 3.4);
             }
         }
     }

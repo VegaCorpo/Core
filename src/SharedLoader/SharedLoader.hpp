@@ -26,17 +26,14 @@ namespace utils {
             };
 
             template <typename T>
-            void load(const std::string& pathToLib, const std::string& libName)
+            void load(const std::string& pathToLib, const std::string& symbole, const std::string& libName)
             {
                 try {
-                    boost::dll::fs::path lib_path = pathToLib;
-                    auto module =
-                        boost::dll::import_symbol<T>(lib_path, "get_engine", boost::dll::load_mode::append_decorations);
+                    boost::dll::fs::path libPath = pathToLib;
+                    auto sym =
+                        boost::dll::import_symbol<T>(libPath, symbole, boost::dll::load_mode::append_decorations);
 
-                    if (module == nullptr) {
-                        throw SharedLoaderError("Unable to load lib");
-                    }
-                    this->_loadedLib[libName] = module;
+                    this->_loadedLib[libName] = std::function<T>(sym);
                 }
                 catch (const boost::wrapexcept<boost::system::system_error>& error) {
                     throw SharedLoaderError(std::format("Library loading failed {}", error.what()));
@@ -44,12 +41,12 @@ namespace utils {
             };
 
             template <typename T>
-            T& get(const std::string& libName)
+            std::function<T> get(const std::string& libName)
             {
                 if (this->_loadedLib.find(libName) == this->_loadedLib.end()) {
                     throw SharedLoaderError("Symbol not found");
                 }
-                return *std::any_cast<boost::shared_ptr<T>>(this->_loadedLib[libName]);
+                return std::any_cast<std::function<T>>(this->_loadedLib[libName]);
             }
 
         private:

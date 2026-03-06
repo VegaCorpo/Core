@@ -3,10 +3,10 @@
 #include <entt/entity/registry.hpp>
 #include <exception>
 #include <mutex>
+#include "src/SharedLoader/SharedLoader.hpp"
 
 namespace core {
-    enum class SimulationState
-    {
+    enum class SimulationState {
         OK,
         INITIALIZATION_ERROR,
         SIMULATION_ERROR,
@@ -22,6 +22,7 @@ namespace core {
             void _launchRenderer();
             SimulationState _loadEngines() noexcept;
 
+            utils::SharedLoader _loader;
             entt::registry _registry;
 
             double physicsThreshold = 1;
