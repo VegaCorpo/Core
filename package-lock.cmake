@@ -12,7 +12,6 @@ CPMDeclarePackage(Common
         GITHUB_REPOSITORY VegaCorpo/Common
         SYSTEM YES
         EXCLUDE_FROM_ALL YES
-        DOWNLOAD_ONLY YES
 )
 
 # boost

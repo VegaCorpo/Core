@@ -45,8 +45,6 @@ add_executable(orbital-engine
     src/core.cpp
 )
 
-add_library(Common INTERFACE)
-
 target_link_libraries(orbital-engine PRIVATE EnTT::EnTT Common Boost::dll)
 
 target_include_directories(orbital-engine PRIVATE
