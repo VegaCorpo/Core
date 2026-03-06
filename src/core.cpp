@@ -20,7 +20,6 @@ constexpr int SUN_EXPONENT = 30;
 
 core::SimulationState core::Simulation::initializeCore() noexcept
 {
-
     this->_loadEngines();
     return core::SimulationState::OK;
 }
@@ -45,9 +44,13 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
     this->_registry.emplace<components::Position>(sunEntity, components::Position(0.0f, 0.f, 0.f));
     this->_registry.emplace<components::Velocity>(sunEntity, components::Velocity(0.f, 0.f, 0.f));
 
-    this->_loader.load<void(void*, double)>("plugins/Physics/liborbital_physics", "physicsUpdate", "physicsUpdate");
+    this->_loader.load<void(void*, void*, double)>("plugins/Physics/liborbital_physics", "physicsUpdate",
+                                                   "physicsUpdate");
     this->_loader.load<std::string()>("plugins/Physics/liborbital_physics", "getName", "getName");
+    this->_loader.load<void(void*, void*)>("plugins/Physics/liborbital_physics", "physicsInit", "physicsInit");
 
+    auto physicsInit = this->_loader.get<void(void*, void*)>("physicsInit");
+    physicsInit(&this->_registry, &this->_dispatcher);
     return core::SimulationState::OK;
 }
 
@@ -84,8 +87,8 @@ void core::Simulation::_launchPhysics()
                 this->physicsAccumulator = 0;
                 auto getName = this->_loader.get<std::string()>("getName");
                 std::cout << getName() << std::endl;
-                auto updatePhysics = this->_loader.get<void(void*, double)>("physicsUpdate");
-                updatePhysics(&this->_registry, 3.4);
+                auto updatePhysics = this->_loader.get<void(void*, void*, double)>("physicsUpdate");
+                updatePhysics(&this->_registry, &this->_dispatcher, 3.4);
             }
         }
     }

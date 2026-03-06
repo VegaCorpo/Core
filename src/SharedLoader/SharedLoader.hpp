@@ -41,7 +41,7 @@ namespace utils {
             };
 
             template <typename T>
-            std::function<T> get(const std::string& libName)
+            [[nodiscard]] std::function<T> get(const std::string& libName)
             {
                 if (this->_loadedLib.find(libName) == this->_loadedLib.end()) {
                     throw SharedLoaderError("Symbol not found");

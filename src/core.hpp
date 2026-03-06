@@ -1,6 +1,7 @@
 #pragma once
 
 #include <entt/entity/registry.hpp>
+#include <entt/signal/dispatcher.hpp>
 #include <exception>
 #include <mutex>
 #include "src/SharedLoader/SharedLoader.hpp"
@@ -24,6 +25,7 @@ namespace core {
 
             utils::SharedLoader _loader;
             entt::registry _registry;
+            entt::dispatcher _dispatcher;
 
             double physicsThreshold = 1;
             double physicsAccumulator = 0.0;
