@@ -13,6 +13,7 @@ include(cmake/CPM.cmake)
 CPMUsePackageLock(package-lock.cmake)
 CPMGetPackage(EnTT)
 CPMGetPackage(Common)
+CPMGetPackage(Boost)
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
@@ -46,7 +47,7 @@ add_executable(orbital-engine
 
 add_library(Common INTERFACE)
 
-target_link_libraries(orbital-engine PRIVATE EnTT::EnTT Common)
+target_link_libraries(orbital-engine PRIVATE EnTT::EnTT Common Boost::dll)
 
 target_include_directories(orbital-engine PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/

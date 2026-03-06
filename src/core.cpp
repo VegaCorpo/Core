@@ -3,9 +3,12 @@
 #include <components/mass.hpp>
 #include <components/position.hpp>
 #include <components/velocity.hpp>
+#include <entt/entity/fwd.hpp>
 #include <mutex>
 #include <thread>
+#include "SharedLoader/SharedLoader.hpp"
 
+#include <iostream>
 #include "core.hpp"
 
 constexpr float EARTH_MANTISSA = 5.97;
@@ -15,7 +18,14 @@ constexpr int MOON_EXPONENT = 22;
 constexpr float SUN_MANTISSA = 1.98;
 constexpr int SUN_EXPONENT = 30;
 
-void core::Simulation::initializeCore()
+core::SimulationState core::Simulation::initializeCore() noexcept
+{
+
+    this->_loadEngines();
+    return core::SimulationState::OK;
+}
+
+core::SimulationState core::Simulation::_loadEngines() noexcept
 {
     const auto earthEntity = this->_registry.create();
     this->_registry.emplace<components::Mass>(earthEntity, components::Mass(EARTH_MANTISSA, EARTH_EXPONENT));
@@ -34,6 +44,11 @@ void core::Simulation::initializeCore()
     this->_registry.emplace<components::Acceleration>(sunEntity, components::Acceleration(0, 0));
     this->_registry.emplace<components::Position>(sunEntity, components::Position(0.0f, 0.f, 0.f));
     this->_registry.emplace<components::Velocity>(sunEntity, components::Velocity(0.f, 0.f, 0.f));
+
+    this->_loader.load<void(void*, double)>("plugins/Physics/liborbital_physics", "physicsUpdate", "physicsUpdate");
+    this->_loader.load<std::string()>("plugins/Physics/liborbital_physics", "getName", "getName");
+
+    return core::SimulationState::OK;
 }
 
 void core::Simulation::launchSimulation()
@@ -66,8 +81,11 @@ void core::Simulation::_launchPhysics()
         {
             std::scoped_lock lock(this->physicsMutex);
             if (this->physicsAccumulator >= this->physicsThreshold) {
-                // Update cpy transform data
                 this->physicsAccumulator = 0;
+                auto getName = this->_loader.get<std::string()>("getName");
+                std::cout << getName() << std::endl;
+                auto updatePhysics = this->_loader.get<void(void*, double)>("physicsUpdate");
+                updatePhysics(&this->_registry, 3.4);
             }
         }
     }
