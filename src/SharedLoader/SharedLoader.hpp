@@ -44,7 +44,7 @@ namespace utils {
             [[nodiscard]] std::function<T> get(const std::string& libName)
             {
                 if (this->_loadedLib.find(libName) == this->_loadedLib.end()) {
-                    throw SharedLoaderError("Symbol not found");
+                    throw SharedLoaderError(std::format("Symbol not found {}", libName));
                 }
                 return std::any_cast<std::function<T>>(this->_loadedLib[libName]);
             }

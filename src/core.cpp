@@ -4,6 +4,8 @@
 #include <components/position.hpp>
 #include <components/velocity.hpp>
 #include <entt/entity/fwd.hpp>
+#include <interfaces/IRenderEngine.hpp>
+#include <interfaces/IUIEngine.hpp>
 #include <mutex>
 #include <thread>
 #include "SharedLoader/SharedLoader.hpp"
@@ -48,9 +50,18 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
                                                    "physicsUpdate");
     this->_loader.load<std::string()>("plugins/Physics/liborbital_physics", "getName", "getName");
     this->_loader.load<void(void*, void*)>("plugins/Physics/liborbital_physics", "physicsInit", "physicsInit");
-
     auto physicsInit = this->_loader.get<void(void*, void*)>("physicsInit");
     physicsInit(&this->_registry, &this->_dispatcher);
+
+    this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine", "get_ui_engine");
+    auto uiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
+    this->_uiEngine = uiFactory();
+    this->_uiEngine->init();
+
+    this->_loader.load<std::unique_ptr<common::IRenderEngine>()>("plugins/Renderer/liborbital_render", "get_engine",
+                                                                 "get_render_engine");
+    auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
+    this->_renderEngine = renderFactory();
     return core::SimulationState::OK;
 }
 
@@ -58,38 +69,32 @@ void core::Simulation::launchSimulation()
 {
     std::thread physicsThread(&core::Simulation::_launchPhysics, this);
     std::thread rendererThread(&core::Simulation::_launchRenderer, this);
+    std::thread uiThread(&core::Simulation::_launchUI, this);
 
     physicsThread.detach();
     rendererThread.detach();
+    uiThread.detach();
 
     auto prev = std::chrono::high_resolution_clock::now();
     while (this->is_running) {
         auto time = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> deltaTime = time - prev;
+        std::chrono::duration<float> deltaTime = time - prev;
         prev = time;
-        {
-            std::scoped_lock lock(this->physicsMutex);
-            this->physicsAccumulator += deltaTime.count();
-        }
-        {
-            std::scoped_lock lock(this->rendererMutex);
-            this->rendererAccumulator += deltaTime.count();
-        }
+        this->physicsAccumulator += deltaTime.count();
+        this->rendererAccumulator += deltaTime.count();
+        this->_uiAccumulator += deltaTime.count();
     }
 }
 
 void core::Simulation::_launchPhysics()
 {
     while (this->is_running) {
-        {
-            std::scoped_lock lock(this->physicsMutex);
-            if (this->physicsAccumulator >= this->physicsThreshold) {
-                this->physicsAccumulator = 0;
-                auto getName = this->_loader.get<std::string()>("getName");
-                std::cout << getName() << std::endl;
-                auto updatePhysics = this->_loader.get<void(void*, void*, double)>("physicsUpdate");
-                updatePhysics(&this->_registry, &this->_dispatcher, 3.4);
-            }
+        if (this->physicsAccumulator >= this->physicsThreshold) {
+            this->physicsAccumulator = 0;
+            auto getName = this->_loader.get<std::string()>("getName");
+            std::cout << getName() << std::endl;
+            auto updatePhysics = this->_loader.get<void(void*, void*, double)>("physicsUpdate");
+            updatePhysics(&this->_registry, &this->_dispatcher, 3.4);
         }
     }
 }
@@ -97,11 +102,34 @@ void core::Simulation::_launchPhysics()
 void core::Simulation::_launchRenderer()
 {
     while (this->is_running) {
+        if (this->rendererAccumulator >= this->rendererThreshold) {
+            this->rendererAccumulator = 0;
+            {
+                std::scoped_lock lock(this->_renderBufferMutex);
+                if (this->_renderBufferQueue.empty() == false) {
+                    this->_renderBuffer = this->_renderBufferQueue.front();
+                    if (this->_renderBuffer.vertices.empty() == false) {
+                        this->_renderBufferQueue.pop();
+                    }
+                }
+            }
+            this->_renderEngine->setVertexBuffer(this->_renderBuffer);
+        }
+    }
+}
+
+void core::Simulation::_launchUI()
+{
+    while (this->is_running) {
         {
-            std::scoped_lock lock(this->rendererMutex);
-            if (this->rendererAccumulator >= this->rendererThreshold) {
-                // render operation
-                this->rendererAccumulator = 0;
+            if (this->_uiAccumulator >= this->_uiThreashold) {
+                this->_uiEngine->update(this->_uiAccumulator, 1920.f, 1080.f);
+                auto vertexBuffer = this->_uiEngine->getDataBuffer();
+                {
+                    std::scoped_lock lock(this->_renderBufferMutex);
+                    this->_renderBufferQueue.push(vertexBuffer);
+                }
+                this->_uiAccumulator = 0;
             }
         }
     }
