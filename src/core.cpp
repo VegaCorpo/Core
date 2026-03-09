@@ -115,6 +115,7 @@ void core::Simulation::_launchRenderer()
                 }
             }
             this->_renderEngine->setVertexBuffer(this->_renderBuffer);
+            this->_renderEngine->update(this->_registry);
         }
     }
 }
