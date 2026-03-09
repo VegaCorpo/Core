@@ -3,7 +3,11 @@
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
 #include <exception>
+#include <interfaces/IRenderEngine.hpp>
+#include <interfaces/IUIEngine.hpp>
 #include <mutex>
+#include <queue>
+#include <types/RenderDataBuffer.hpp>
 #include "src/SharedLoader/SharedLoader.hpp"
 
 namespace core {
@@ -21,19 +25,28 @@ namespace core {
         private:
             void _launchPhysics();
             void _launchRenderer();
+            void _launchUI();
+
             SimulationState _loadEngines() noexcept;
+            std::unique_ptr<common::IUIEngine> _uiEngine = nullptr;
+            std::unique_ptr<common::IRenderEngine> _renderEngine = nullptr;
 
             utils::SharedLoader _loader;
             entt::registry _registry;
             entt::dispatcher _dispatcher;
 
-            double physicsThreshold = 1;
-            double physicsAccumulator = 0.0;
-            std::mutex physicsMutex;
+            float physicsThreshold = 1;
+            std::atomic<float> physicsAccumulator = 0.0;
 
-            double rendererThreshold = 0.016;
-            double rendererAccumulator = 0.0;
-            std::mutex rendererMutex;
+            float rendererThreshold = 0.016;
+            std::atomic<float> rendererAccumulator = 0.0;
+
+            float _uiThreashold = 0.016;
+            std::atomic<float> _uiAccumulator = 0.0;
+
+            std::mutex _renderBufferMutex;
+            std::queue<common::RenderDataBuffer> _renderBufferQueue;
+            common::RenderDataBuffer _renderBuffer;
 
             bool is_running = true;
     };
