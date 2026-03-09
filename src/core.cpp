@@ -62,6 +62,7 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
                                                                  "get_render_engine");
     auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
     this->_renderEngine = renderFactory();
+    this->_renderEngine->init();
     return core::SimulationState::OK;
 }
 
