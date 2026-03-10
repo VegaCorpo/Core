@@ -21,9 +21,10 @@ constexpr int MOON_EXPONENT = 22;
 constexpr float SUN_MANTISSA = 1.98;
 constexpr int SUN_EXPONENT = 30;
 
-core::SimulationState core::Simulation::initializeCore(const std::string &filename) noexcept
+core::SimulationState core::Simulation::initializeCore(const std::string& filename) noexcept
 {
-    this->_loader.load<common::LoaderStatus(void*, const std::string&)>("plugins/Loader/liborbital_loader", "createScene", "createScene");
+    this->_loader.load<common::LoaderStatus(void*, const std::string&)>("plugins/Loader/liborbital_loader",
+                                                                        "createScene", "createScene");
     auto createScene = this->_loader.get<common::LoaderStatus(void*, const std::string&)>("createScene");
     if (createScene(&this->_registry, filename) != common::LoaderStatus::SUCCESS)
         return core::SimulationState::INITIALIZATION_ERROR;
