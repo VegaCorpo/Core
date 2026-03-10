@@ -30,10 +30,9 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
 {
     this->_initPhysics();
 
-    // this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine",
-    // "get_ui_engine"); auto uiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
-    // this->_uiEngine = uiFactory();
-    // this->_uiEngine->init();
+    this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine", "get_ui_engine");
+    auto uiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
+    this->_uiEngine = uiFactory();
 
     return core::SimulationState::OK;
 }
@@ -55,11 +54,11 @@ void core::Simulation::launchSimulation()
 {
     std::thread physicsThread(&core::Simulation::_launchPhysics, this);
     std::thread rendererThread(&core::Simulation::_launchRenderer, this);
-    // std::thread uiThread(&core::Simulation::_launchUI, this);
+    std::thread uiThread(&core::Simulation::_launchUI, this);
 
     physicsThread.detach();
     rendererThread.detach();
-    // uiThread.detach();
+    uiThread.detach();
 
     auto prev = std::chrono::high_resolution_clock::now();
     while (this->is_running) {
@@ -98,9 +97,9 @@ void core::Simulation::_launchRenderer()
     this->_renderEngine = renderFactory();
     this->_renderEngine->init();
 
-    this->_uiEngine->init([this](unsigned char* pixels, int width, int height) -> unsigned int {
-        return this->_renderEngine->loadTextureFromPixels(pixels, width, height);
-    });
+    this->_uiEngine->init([this](unsigned char* pixels, int width, int height) -> unsigned int
+                          { return this->_renderEngine->loadTextureFromPixels(pixels, width, height); });
+    this->_renderInitCv.notify_all();
 
     while (this->is_running) {
         if (this->rendererAccumulator >= this->rendererThreshold) {
@@ -108,14 +107,11 @@ void core::Simulation::_launchRenderer()
             {
                 std::scoped_lock lock(this->_renderBufferMutex);
                 if (this->_renderBufferQueue.empty() == false) {
-                    this->_renderBuffer = this->_renderBufferQueue.front();
-                    if (this->_renderBuffer.vertices.empty() == false) {
-                        this->_renderBufferQueue.pop();
-                    }
+                    auto renderBuffer = this->_renderBufferQueue.front();
+                    this->_renderEngine->setVertexBuffer(renderBuffer);
+                    this->_renderBufferQueue.pop();
                 }
             }
-            // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
-            // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
             this->_renderEngine->update(this->_registry);
         }
     }
@@ -123,14 +119,16 @@ void core::Simulation::_launchRenderer()
 
 void core::Simulation::_launchUI()
 {
+    std::unique_lock<std::mutex> lock(this->_initMutex);
+    this->_renderInitCv.wait(lock);
+
     while (this->is_running) {
         {
             if (this->_uiAccumulator >= this->_uiThreashold) {
-                
-                this->_uiEngine->update(this->_uiAccumulator, 1920.f, 1080.f);
-                auto vertexBuffer = this->_uiEngine->getDataBuffer();
+                this->_uiEngine->update(this->_uiAccumulator, 1280.f, 800.f);
                 {
                     std::scoped_lock lock(this->_renderBufferMutex);
+                    auto vertexBuffer = this->_uiEngine->getDataBuffer();
                     this->_renderBufferQueue.push(vertexBuffer);
                 }
                 this->_uiAccumulator = 0;
