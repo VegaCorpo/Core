@@ -53,11 +53,11 @@ void core::Simulation::launchSimulation()
 {
     std::thread physicsThread(&core::Simulation::_launchPhysics, this);
     std::thread rendererThread(&core::Simulation::_launchRenderer, this);
-    // std::thread uiThread(&core::Simulation::_launchUI, this);
+    std::thread uiThread(&core::Simulation::_launchUI, this);
 
     physicsThread.detach();
     rendererThread.detach();
-    // uiThread.detach();
+    uiThread.detach();
 
     auto prev = std::chrono::high_resolution_clock::now();
     while (this->is_running) {
