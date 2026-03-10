@@ -36,7 +36,7 @@ namespace core {
             entt::registry _registry;
             entt::dispatcher _dispatcher;
 
-            float physicsThreshold = 1;
+            float physicsThreshold = 0.016;
             std::atomic<float> physicsAccumulator = 0.0;
 
             float rendererThreshold = 0.016;
