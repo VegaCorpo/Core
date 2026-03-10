@@ -98,6 +98,10 @@ void core::Simulation::_launchRenderer()
     this->_renderEngine = renderFactory();
     this->_renderEngine->init();
 
+    this->_uiEngine->init([this](unsigned char* pixels, int width, int height) -> unsigned int {
+        return this->_renderEngine->loadTextureFromPixels(pixels, width, height);
+    });
+
     while (this->is_running) {
         if (this->rendererAccumulator >= this->rendererThreshold) {
             this->rendererAccumulator = 0;
@@ -111,6 +115,7 @@ void core::Simulation::_launchRenderer()
                 }
             }
             // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
+            // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
             this->_renderEngine->update(this->_registry);
         }
     }
@@ -121,6 +126,7 @@ void core::Simulation::_launchUI()
     while (this->is_running) {
         {
             if (this->_uiAccumulator >= this->_uiThreashold) {
+                
                 this->_uiEngine->update(this->_uiAccumulator, 1920.f, 1080.f);
                 auto vertexBuffer = this->_uiEngine->getDataBuffer();
                 {
