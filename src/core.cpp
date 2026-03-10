@@ -102,10 +102,9 @@ void core::Simulation::_launchRenderer()
             {
                 std::scoped_lock lock(this->_renderBufferMutex);
                 if (this->_renderBufferQueue.empty() == false) {
-                    this->_renderBuffer = this->_renderBufferQueue.front();
-                    if (this->_renderBuffer.vertices.empty() == false) {
-                        this->_renderBufferQueue.pop();
-                    }
+                    auto renderBuffer = this->_renderBufferQueue.front();
+                    this->_renderEngine->setVertexBuffer(renderBuffer);
+                    this->_renderBufferQueue.pop();
                 }
             }
             // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
