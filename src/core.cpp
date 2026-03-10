@@ -14,13 +14,6 @@
 #include <types/types.hpp>
 #include "core.hpp"
 
-constexpr float EARTH_MANTISSA = 5.97;
-constexpr int EARTH_EXPONENT = 24;
-constexpr float MOON_MANTISSA = 7.35;
-constexpr int MOON_EXPONENT = 22;
-constexpr float SUN_MANTISSA = 1.98;
-constexpr int SUN_EXPONENT = 30;
-
 core::SimulationState core::Simulation::initializeCore(const std::string& filename) noexcept
 {
     this->_loader.load<common::LoaderStatus(void*, const std::string&)>("plugins/Loader/liborbital_loader",
@@ -35,7 +28,6 @@ core::SimulationState core::Simulation::initializeCore(const std::string& filena
 
 core::SimulationState core::Simulation::_loadEngines() noexcept
 {
-
     this->_initPhysics();
 
     // this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine",
@@ -92,7 +84,7 @@ void core::Simulation::_launchPhysics()
             auto syncOut = this->_loader.get<void(void*)>("physicsSyncOut");
             syncOut(&this->_registry);
             auto updatePhysics = this->_loader.get<void(void*, void*, double)>("physicsUpdate");
-            updatePhysics(&this->_registry, &this->_dispatcher, 0.5);
+            updatePhysics(&this->_registry, &this->_dispatcher, 7200);
         }
     }
 }
