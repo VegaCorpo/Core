@@ -32,19 +32,19 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
     this->_registry.emplace<components::Mass>(earthEntity, components::Mass(EARTH_MANTISSA, EARTH_EXPONENT));
     this->_registry.emplace<components::Acceleration>(earthEntity, components::Acceleration(0, 0));
     this->_registry.emplace<components::Position>(earthEntity, components::Position(149597870.f, 0.f, 0.f));
-    this->_registry.emplace<components::Velocity>(earthEntity, components::Velocity(0.f, 0.f, 0.f));
+    this->_registry.emplace<components::Velocity>(earthEntity, components::Velocity(0.f, 29.78f, 0.f));
 
     const auto moonEntity = this->_registry.create();
     this->_registry.emplace<components::Mass>(moonEntity, components::Mass(MOON_MANTISSA, MOON_EXPONENT));
     this->_registry.emplace<components::Acceleration>(moonEntity, components::Acceleration(0, 0));
     this->_registry.emplace<components::Position>(moonEntity, components::Position(149213470.f, 0.f, 0.f));
-    this->_registry.emplace<components::Velocity>(moonEntity, components::Velocity(0.f, 0.f, 0.f));
+    this->_registry.emplace<components::Velocity>(moonEntity, components::Velocity(0.f, 30.802f, 0.f));
 
     const auto sunEntity = this->_registry.create();
     this->_registry.emplace<components::Mass>(sunEntity, components::Mass(SUN_MANTISSA, SUN_EXPONENT));
     this->_registry.emplace<components::Acceleration>(sunEntity, components::Acceleration(0, 0));
     this->_registry.emplace<components::Position>(sunEntity, components::Position(0.0f, 0.f, 0.f));
-    this->_registry.emplace<components::Velocity>(sunEntity, components::Velocity(0.f, 0.f, 0.f));
+    this->_registry.emplace<components::Velocity>(sunEntity, components::Velocity(0.f, -0.089f, 0.f));
 
     this->_initPhysics();
 
@@ -102,7 +102,7 @@ void core::Simulation::_launchPhysics()
             auto syncOut = this->_loader.get<void(void*)>("physicsSyncOut");
             syncOut(&this->_registry);
             auto updatePhysics = this->_loader.get<void(void*, void*, double)>("physicsUpdate");
-            updatePhysics(&this->_registry, &this->_dispatcher, 0.5);
+            updatePhysics(&this->_registry, &this->_dispatcher, 7200);
         }
     }
 }
