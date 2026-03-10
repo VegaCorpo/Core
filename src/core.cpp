@@ -46,23 +46,33 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
     this->_registry.emplace<components::Position>(sunEntity, components::Position(0.0f, 0.f, 0.f));
     this->_registry.emplace<components::Velocity>(sunEntity, components::Velocity(0.f, 0.f, 0.f));
 
-    this->_loader.load<void(void*, void*, double)>("plugins/Physics/liborbital_physics", "physicsUpdate",
-                                                   "physicsUpdate");
-    this->_loader.load<std::string()>("plugins/Physics/liborbital_physics", "getName", "getName");
-    this->_loader.load<void(void*, void*)>("plugins/Physics/liborbital_physics", "physicsInit", "physicsInit");
-    auto physicsInit = this->_loader.get<void(void*, void*)>("physicsInit");
-    physicsInit(&this->_registry, &this->_dispatcher);
-
-    this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine", "get_ui_engine");
-    auto uiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
-    this->_uiEngine = uiFactory();
-    this->_uiEngine->init();
+    this->_initPhysics();
 
     this->_loader.load<std::unique_ptr<common::IRenderEngine>()>("plugins/Renderer/liborbital_render", "get_engine",
                                                                  "get_render_engine");
     auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
     this->_renderEngine = renderFactory();
+    this->_renderEngine->init();
+
+    this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine", "get_ui_engine");
+    auto uiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
+    this->_uiEngine = uiFactory();
+    // this->_uiEngine->init();
+
     return core::SimulationState::OK;
+}
+
+void core::Simulation::_initPhysics()
+{
+    this->_loader.load<void(void*, void*, double)>("plugins/Physics/liborbital_physics", "physicsUpdate",
+                                                   "physicsUpdate");
+    this->_loader.load<std::string()>("plugins/Physics/liborbital_physics", "getName", "getName");
+    this->_loader.load<void(void*, void*)>("plugins/Physics/liborbital_physics", "physicsInit", "physicsInit");
+    this->_loader.load<void(void*)>("plugins/Physics/liborbital_physics", "physicsSyncIn", "physicsSyncIn");
+    this->_loader.load<void(void*)>("plugins/Physics/liborbital_physics", "physicsSyncOut", "physicsSyncOut");
+
+    auto physicsInit = this->_loader.get<void(void*, void*)>("physicsInit");
+    physicsInit(&this->_registry, &this->_dispatcher);
 }
 
 void core::Simulation::launchSimulation()
@@ -93,6 +103,10 @@ void core::Simulation::_launchPhysics()
             this->physicsAccumulator = 0;
             auto getName = this->_loader.get<std::string()>("getName");
             std::cout << getName() << std::endl;
+            auto syncIn = this->_loader.get<void(void*)>("physicsSyncIn");
+            syncIn(&this->_registry);
+            auto syncOut = this->_loader.get<void(void*)>("physicsSyncOut");
+            syncOut(&this->_registry);
             auto updatePhysics = this->_loader.get<void(void*, void*, double)>("physicsUpdate");
             updatePhysics(&this->_registry, &this->_dispatcher, 3.4);
         }
@@ -113,7 +127,8 @@ void core::Simulation::_launchRenderer()
                     }
                 }
             }
-            this->_renderEngine->setVertexBuffer(this->_renderBuffer);
+            // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
+            this->_renderEngine->update(this->_registry);
         }
     }
 }

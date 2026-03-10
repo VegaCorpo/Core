@@ -23,6 +23,7 @@ namespace core {
             void launchSimulation();
 
         private:
+            void _initPhysics();
             void _launchPhysics();
             void _launchRenderer();
             void _launchUI();
