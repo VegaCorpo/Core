@@ -19,7 +19,7 @@ namespace core {
 
     class Simulation {
         public:
-            core::SimulationState initializeCore() noexcept;
+            core::SimulationState initializeCore(const std::string& filename) noexcept;
             void launchSimulation();
 
         private:
