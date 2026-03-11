@@ -44,7 +44,7 @@ namespace core {
             std::atomic<bool> _rendererInit = false;
             std::atomic<float> rendererAccumulator = 0.0;
 
-            float _uiThreashold = 0.016;
+            float _uiThreashold = 0.16;
             std::atomic<float> _uiAccumulator = 0.0;
 
             std::condition_variable _renderInitCv;

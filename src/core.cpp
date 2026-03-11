@@ -77,7 +77,6 @@ void core::Simulation::_launchPhysics()
         if (this->physicsAccumulator >= this->physicsThreshold) {
             this->physicsAccumulator = 0;
             auto getName = this->_loader.get<std::string()>("getName");
-            std::cout << getName() << std::endl;
             auto syncIn = this->_loader.get<void(void*)>("physicsSyncIn");
             syncIn(&this->_registry);
             auto syncOut = this->_loader.get<void(void*)>("physicsSyncOut");
@@ -123,16 +122,14 @@ void core::Simulation::_launchUI()
     this->_renderInitCv.wait(lock);
 
     while (this->is_running) {
-        {
-            if (this->_uiAccumulator >= this->_uiThreashold) {
-                this->_uiEngine->update(this->_uiAccumulator, 1280.f, 800.f);
-                {
-                    std::scoped_lock lock(this->_renderBufferMutex);
-                    auto vertexBuffer = this->_uiEngine->getDataBuffer();
-                    this->_renderBufferQueue.push(vertexBuffer);
-                }
-                this->_uiAccumulator = 0;
+        if (this->_uiAccumulator >= this->_uiThreashold) {
+            this->_uiEngine->update(this->_uiAccumulator, 1280.f, 800.f);
+            {
+                std::scoped_lock lock(this->_renderBufferMutex);
+                auto vertexBuffer = this->_uiEngine->getDataBuffer();
+                this->_renderBufferQueue.push(vertexBuffer);
             }
+            this->_uiAccumulator = 0;
         }
     }
 }
