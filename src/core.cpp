@@ -78,7 +78,6 @@ void core::Simulation::_launchPhysics()
         if (this->physicsAccumulator >= this->physicsThreshold) {
             this->physicsAccumulator = 0;
             auto getName = this->_loader.get<std::string()>("getName");
-            std::cout << getName() << std::endl;
             auto syncIn = this->_loader.get<void(void*)>("physicsSyncIn");
             syncIn(&this->_registry);
             auto syncOut = this->_loader.get<void(void*)>("physicsSyncOut");
