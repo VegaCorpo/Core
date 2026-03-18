@@ -10,7 +10,6 @@
 #include <thread>
 #include "SharedLoader/SharedLoader.hpp"
 
-#include <iostream>
 #include <types/types.hpp>
 #include "core.hpp"
 
@@ -100,7 +99,19 @@ void core::Simulation::_launchRenderer()
     while (this->is_running) {
         if (this->rendererAccumulator >= this->rendererThreshold) {
             this->rendererAccumulator = 0;
-            this->_renderEngine->update(this->_registry);
+            {
+                std::scoped_lock lock(this->_renderBufferMutex);
+                if (this->_renderBufferQueue.empty() == false) {
+                    this->_renderBuffer = this->_renderBufferQueue.front();
+                    if (this->_renderBuffer.vertices.empty() == false) {
+                        this->_renderBufferQueue.pop();
+                    }
+                }
+            }
+            // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
+            this->_renderEngine->syncIn(this->_registry);
+            this->_renderEngine->update();
+            this->_renderEngine->render();
         }
     }
 }
