@@ -80,10 +80,10 @@ void core::Simulation::_launchPhysics()
             auto getName = this->_loader.get<std::string()>("getName");
             auto syncIn = this->_loader.get<void(void*)>("physicsSyncIn");
             syncIn(&this->_registry);
-            auto syncOut = this->_loader.get<void(void*)>("physicsSyncOut");
-            syncOut(&this->_registry);
             auto updatePhysics = this->_loader.get<void(void*, void*, double)>("physicsUpdate");
             updatePhysics(&this->_registry, &this->_dispatcher, 7200);
+            auto syncOut = this->_loader.get<void(void*)>("physicsSyncOut");
+            syncOut(&this->_registry);
         }
     }
 }
