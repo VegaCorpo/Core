@@ -72,16 +72,21 @@ void core::Simulation::launchSimulation()
 
 void core::Simulation::_launchPhysics()
 {
+    auto getName = this->_loader.get<std::string()>("getName");
+    auto syncIn = this->_loader.get<void(void*)>("physicsSyncIn");
+    auto syncOut = this->_loader.get<void(void*)>("physicsSyncOut");
+    auto updatePhysics = this->_loader.get<void(void*, void*, double)>("physicsUpdate");
+    auto accumulator = 0.f;
+
     while (this->is_running) {
         if (this->physicsAccumulator >= this->physicsThreshold) {
-            this->physicsAccumulator = 0;
-            auto getName = this->_loader.get<std::string()>("getName");
-            auto syncIn = this->_loader.get<void(void*)>("physicsSyncIn");
+            accumulator = physicsAccumulator;
             syncIn(&this->_registry);
-            auto updatePhysics = this->_loader.get<void(void*, void*, double)>("physicsUpdate");
             updatePhysics(&this->_registry, &this->_dispatcher, 7200);
-            auto syncOut = this->_loader.get<void(void*)>("physicsSyncOut");
             syncOut(&this->_registry);
+            // std::cout << std::format("Physics elapsed time: {} ms", (this->physicsAccumulator - accumulator) * 1000)
+            //           << std::endl;
+            this->physicsAccumulator = 0;
         }
     }
 }
