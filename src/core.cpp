@@ -93,8 +93,8 @@ void core::Simulation::_launchPhysics()
 
 void core::Simulation::_launchRenderer()
 {
-    this->_loader.load<std::unique_ptr<common::IRenderEngine>()>("plugins/Renderer/liborbital_render", "get_engine",
-                                                                 "get_render_engine");
+    this->_loader.load<std::unique_ptr<common::IRenderEngine>()>(
+        "plugins/Renderer/liborbital_render", "get_engine", "get_render_engine");
     auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
     this->_renderEngine = renderFactory();
     this->_renderEngine->init();
