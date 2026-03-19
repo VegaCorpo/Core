@@ -18,8 +18,15 @@ jobs:
           - name: Get Cmake
             uses: awalsh128/cache-apt-pkgs-action@latest
             with:
-                packages: cmake
-                version: v4.2.3
+              packages: >
+                cmake
+                libx11-dev
+                libxcursor-dev
+                libxinerama-dev
+                libxrandr-dev
+                libxi-dev
+                libgl1-mesa-dev
+                libglu1-mesa-dev
 
           - name: Compile Repo
             run:  |
