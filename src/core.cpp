@@ -29,9 +29,9 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
 {
     this->_initPhysics();
 
-    this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine", "get_ui_engine");
-    auto uiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
-    this->_uiEngine = uiFactory();
+    // this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine",
+    // "get_ui_engine"); auto uiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
+    // this->_uiEngine = uiFactory();
 
     return core::SimulationState::OK;
 }
@@ -53,11 +53,11 @@ void core::Simulation::launchSimulation()
 {
     std::thread physicsThread(&core::Simulation::_launchPhysics, this);
     std::thread rendererThread(&core::Simulation::_launchRenderer, this);
-    std::thread uiThread(&core::Simulation::_launchUI, this);
+    // std::thread uiThread(&core::Simulation::_launchUI, this);
 
     physicsThread.detach();
     rendererThread.detach();
-    uiThread.detach();
+    // uiThread.detach();
 
     auto prev = std::chrono::high_resolution_clock::now();
     while (this->is_running) {
@@ -93,8 +93,8 @@ void core::Simulation::_launchPhysics()
 
 void core::Simulation::_launchRenderer()
 {
-    this->_loader.load<std::unique_ptr<common::IRenderEngine>()>(
-        "plugins/Renderer/liborbital_render", "get_engine", "get_render_engine");
+    this->_loader.load<std::unique_ptr<common::IRenderEngine>()>("plugins/Renderer/liborbital_render", "get_engine",
+                                                                 "get_render_engine");
     auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
     this->_renderEngine = renderFactory();
     this->_renderEngine->init();
