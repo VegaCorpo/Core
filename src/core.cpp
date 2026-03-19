@@ -89,27 +89,17 @@ void core::Simulation::_launchPhysics()
 
 void core::Simulation::_launchRenderer()
 {
-    this->_loader.load<std::unique_ptr<common::IRenderEngine>()>("plugins/Renderer/liborbital_render", "get_engine",
-                                                                 "get_render_engine");
+    this->_loader.load<std::unique_ptr<common::IRenderEngine>()>(
+        "plugins/Renderer/liborbital_render", "get_engine", "get_render_engine");
     auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
     this->_renderEngine = renderFactory();
     this->_renderEngine->init();
 
-    this->_uiEngine->init([this](unsigned char* pixels, int width, int height) -> unsigned int
-                          { return this->_renderEngine->loadTextureFromPixels(pixels, width, height); });
     this->_renderInitCv.notify_all();
 
     while (this->is_running) {
         if (this->rendererAccumulator >= this->rendererThreshold) {
             this->rendererAccumulator = 0;
-            {
-                std::scoped_lock lock(this->_renderBufferMutex);
-                if (this->_renderBufferQueue.empty() == false) {
-                    auto renderBuffer = this->_renderBufferQueue.front();
-                    this->_renderEngine->setVertexBuffer(renderBuffer);
-                    this->_renderBufferQueue.pop();
-                }
-            }
             this->_renderEngine->update(this->_registry);
         }
     }
@@ -119,16 +109,9 @@ void core::Simulation::_launchUI()
 {
     std::unique_lock<std::mutex> lock(this->_initMutex);
     this->_renderInitCv.wait(lock);
+    lock.unlock();
 
     while (this->is_running) {
-        if (this->_uiAccumulator >= this->_uiThreashold) {
-            this->_uiEngine->update(this->_uiAccumulator, 1280.f, 800.f);
-            {
-                std::scoped_lock lock(this->_renderBufferMutex);
-                auto vertexBuffer = this->_uiEngine->getDataBuffer();
-                this->_renderBufferQueue.push(vertexBuffer);
-            }
-            this->_uiAccumulator = 0;
-        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 }
