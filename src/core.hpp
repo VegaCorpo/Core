@@ -1,5 +1,6 @@
 #pragma once
 
+#include <condition_variable>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
 #include <exception>
@@ -40,14 +41,16 @@ namespace core {
             std::atomic<float> physicsAccumulator = 0.0;
 
             float rendererThreshold = 0.016;
+            std::atomic<bool> _rendererInit = false;
             std::atomic<float> rendererAccumulator = 0.0;
 
-            float _uiThreashold = 0.016;
+            float _uiThreashold = 0.16;
             std::atomic<float> _uiAccumulator = 0.0;
 
+            std::condition_variable _renderInitCv;
             std::mutex _renderBufferMutex;
+            std::mutex _initMutex;
             std::queue<common::RenderDataBuffer> _renderBufferQueue;
-            common::RenderDataBuffer _renderBuffer;
 
             bool is_running = true;
     };
