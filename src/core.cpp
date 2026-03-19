@@ -95,9 +95,16 @@ void core::Simulation::_launchRenderer()
 {
     this->_loader.load<std::unique_ptr<common::IRenderEngine>()>(
         "plugins/Renderer/liborbital_render", "get_engine", "get_render_engine");
+    this->_loader.load<std::unique_ptr<common::IUIEngine>()>(
+        "plugins/Renderer/liborbital_render", "get_ui_engine", "get_render_ui_engine");
+
     auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
+    auto renderUiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_render_ui_engine");
+
     this->_renderEngine = renderFactory();
+    this->_uiEngine = renderUiFactory();
     this->_renderEngine->init();
+    this->_uiEngine->init(this->_renderEngine->getWindowHandle());
 
     this->_renderInitCv.notify_all();
 
@@ -115,7 +122,9 @@ void core::Simulation::_launchRenderer()
             // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
             this->_renderEngine->syncIn(this->_registry);
             this->_renderEngine->update();
-            this->_renderEngine->render();
+            this->_renderEngine->render([this]() {
+                this->_uiEngine->render();
+            });
         }
     }
 }
