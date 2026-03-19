@@ -84,8 +84,8 @@ void core::Simulation::_launchPhysics()
             syncIn(&this->_registry);
             updatePhysics(&this->_registry, &this->_dispatcher, 7200);
             syncOut(&this->_registry);
-            std::cout << std::format("Physics elapsed time: {} ms", (this->physicsAccumulator - accumulator) * 1000)
-                      << std::endl;
+            // std::cout << std::format("Physics elapsed time: {} ms", (this->physicsAccumulator - accumulator) * 1000)
+            //           << std::endl;
             this->physicsAccumulator = 0;
         }
     }
