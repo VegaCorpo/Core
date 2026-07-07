@@ -116,7 +116,7 @@ void core::Simulation::_launchRenderer()
     while (this->is_running) {
         if (!this->_renderEngine->isRunning()) {
             this->is_running = false;
-            return;
+            break;
         }
 
         if (this->rendererAccumulator >= this->rendererThreshold) {
