@@ -89,7 +89,7 @@ void core::Simulation::_launchPhysics()
             }
             // std::cout << std::format("Physics elapsed time: {} ms", (this->physicsAccumulator - accumulator) * 1000)
             //           << std::endl;
-            this->physicsAccumulator = 0;
+            this->physicsAccumulator -= this->physicsThreshold;
         }
     }
 }
