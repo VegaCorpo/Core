@@ -83,20 +83,23 @@ void core::Simulation::_launchPhysics()
             accumulator = physicsAccumulator;
             syncIn(&this->_registry);
             updatePhysics(&this->_registry, &this->_dispatcher, 7200);
-            syncOut(&this->_registry);
+            {
+                std::scoped_lock lock(this->_registryMutex);
+                syncOut(&this->_registry);
+            }
             // std::cout << std::format("Physics elapsed time: {} ms", (this->physicsAccumulator - accumulator) * 1000)
             //           << std::endl;
-            this->physicsAccumulator = 0;
+            this->physicsAccumulator -= this->physicsThreshold;
         }
     }
 }
 
 void core::Simulation::_launchRenderer()
 {
-    this->_loader.load<std::unique_ptr<common::IRenderEngine>()>(
-        "plugins/Renderer/liborbital_render", "get_engine", "get_render_engine");
-    this->_loader.load<std::unique_ptr<common::IUIEngine>()>(
-        "plugins/Renderer/liborbital_render", "get_ui_engine", "get_render_ui_engine");
+    this->_loader.load<std::unique_ptr<common::IRenderEngine>()>("plugins/Renderer/liborbital_render", "get_engine",
+                                                                 "get_render_engine");
+    this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/Renderer/liborbital_render", "get_ui_engine",
+                                                             "get_render_ui_engine");
 
     auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
     auto renderUiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_render_ui_engine");
@@ -120,11 +123,12 @@ void core::Simulation::_launchRenderer()
                 }
             }
             // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
-            this->_renderEngine->syncIn(this->_registry);
+            {
+                std::scoped_lock lock(this->_registryMutex);
+                this->_renderEngine->syncIn(this->_registry);
+            }
             this->_renderEngine->update();
-            this->_renderEngine->render([this]() {
-                this->_uiEngine->render();
-            });
+            this->_renderEngine->render([this]() { this->_uiEngine->render(); });
         }
     }
 }
