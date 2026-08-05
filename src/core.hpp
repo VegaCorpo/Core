@@ -1,9 +1,9 @@
 #pragma once
 
+#include <atomic>
 #include <condition_variable>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
-#include <exception>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
 #include <mutex>
@@ -30,10 +30,12 @@ namespace core {
             void _launchUI();
 
             SimulationState _loadEngines() noexcept;
+
+            utils::SharedLoader _loader;
+
             std::unique_ptr<common::IUIEngine> _uiEngine = nullptr;
             std::unique_ptr<common::IRenderEngine> _renderEngine = nullptr;
 
-            utils::SharedLoader _loader;
             entt::registry _registry;
             entt::dispatcher _dispatcher;
 
@@ -53,6 +55,6 @@ namespace core {
             std::mutex _initMutex;
             std::queue<common::RenderDataBuffer> _renderBufferQueue;
 
-            bool is_running = true;
+            std::atomic<bool> is_running = true;
     };
 } // namespace core

@@ -106,12 +106,22 @@ void core::Simulation::_launchRenderer()
 
     this->_renderEngine = renderFactory();
     this->_uiEngine = renderUiFactory();
+
+    if (!this->_renderEngine || !this->_uiEngine) {
+        throw std::runtime_error("Failed to load Render or UI engine");
+    }
+
     this->_renderEngine->init();
     this->_uiEngine->init(this->_renderEngine->getWindowHandle());
 
     this->_renderInitCv.notify_all();
 
     while (this->is_running) {
+        if (!this->_renderEngine->isRunning()) {
+            this->is_running = false;
+            break;
+        }
+
         if (this->rendererAccumulator >= this->rendererThreshold) {
             this->rendererAccumulator = 0;
             {
@@ -122,6 +132,7 @@ void core::Simulation::_launchRenderer()
                     this->_renderBufferQueue.pop();
                 }
             }
+
             // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
             {
                 std::scoped_lock lock(this->_registryMutex);
