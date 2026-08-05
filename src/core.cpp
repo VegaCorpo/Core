@@ -83,10 +83,13 @@ void core::Simulation::_launchPhysics()
             accumulator = physicsAccumulator;
             syncIn(&this->_registry);
             updatePhysics(&this->_registry, &this->_dispatcher, 7200);
-            syncOut(&this->_registry);
+            {
+                std::scoped_lock lock(this->_registryMutex);
+                syncOut(&this->_registry);
+            }
             // std::cout << std::format("Physics elapsed time: {} ms", (this->physicsAccumulator - accumulator) * 1000)
             //           << std::endl;
-            this->physicsAccumulator = 0;
+            this->physicsAccumulator -= this->physicsThreshold;
         }
     }
 }
@@ -131,15 +134,12 @@ void core::Simulation::_launchRenderer()
             }
 
             // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
-            this->_renderEngine->syncIn(this->_registry);
+            {
+                std::scoped_lock lock(this->_registryMutex);
+                this->_renderEngine->syncIn(this->_registry);
+            }
             this->_renderEngine->update();
-            this->_renderEngine->render(
-                [this]()
-                {
-                    if (this->_uiEngine) {
-                        this->_uiEngine->render();
-                    }
-                });
+            this->_renderEngine->render([this]() { this->_uiEngine->render(); });
         }
     }
 }

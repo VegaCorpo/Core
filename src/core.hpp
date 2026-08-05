@@ -51,6 +51,7 @@ namespace core {
 
             std::condition_variable _renderInitCv;
             std::mutex _renderBufferMutex;
+            std::mutex _registryMutex;
             std::mutex _initMutex;
             std::queue<common::RenderDataBuffer> _renderBufferQueue;
 
