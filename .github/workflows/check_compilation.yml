@@ -23,6 +23,8 @@ jobs:
                   cmake
 
           - name: Compile Repo
+            env:
+              CXX: g++-14
             run:  |
                 cmake -S . -B .build
                 cmake --build .build
