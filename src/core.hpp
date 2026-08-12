@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
+#include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
 #include <mutex>
@@ -24,7 +25,6 @@ namespace core {
             void launchSimulation();
 
         private:
-            void _initPhysics();
             void _launchPhysics();
             void _launchRenderer();
             void _launchUI();
@@ -33,6 +33,7 @@ namespace core {
 
             utils::SharedLoader _loader;
 
+            std::unique_ptr<common::IPhysicsEngine> _physicsEngine = nullptr;
             std::unique_ptr<common::IUIEngine> _uiEngine = nullptr;
             std::unique_ptr<common::IRenderEngine> _renderEngine = nullptr;
 
