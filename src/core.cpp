@@ -4,6 +4,7 @@
 #include <components/position.hpp>
 #include <components/velocity.hpp>
 #include <entt/entity/fwd.hpp>
+#include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
 #include <mutex>
@@ -27,26 +28,18 @@ core::SimulationState core::Simulation::initializeCore(const std::string& filena
 
 core::SimulationState core::Simulation::_loadEngines() noexcept
 {
-    this->_initPhysics();
+    this->_loader.load<std::unique_ptr<common::IPhysicsEngine>()>("plugins/Physics/liborbital_physics", "get_engine",
+                                                   "get_physics_engine");
+
+    auto physicsFactory = this->_loader.get<std::unique_ptr<common::IPhysicsEngine>()>("get_physics_engine");
+    this->_physicsEngine = physicsFactory();
+    this->_physicsEngine->init(this->_registry, this->_dispatcher);
 
     // this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine",
     // "get_ui_engine"); auto uiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
     // this->_uiEngine = uiFactory();
 
     return core::SimulationState::OK;
-}
-
-void core::Simulation::_initPhysics()
-{
-    this->_loader.load<void(void*, void*, double)>("plugins/Physics/liborbital_physics", "physicsUpdate",
-                                                   "physicsUpdate");
-    this->_loader.load<std::string()>("plugins/Physics/liborbital_physics", "getName", "getName");
-    this->_loader.load<void(void*, void*)>("plugins/Physics/liborbital_physics", "physicsInit", "physicsInit");
-    this->_loader.load<void(void*)>("plugins/Physics/liborbital_physics", "physicsSyncIn", "physicsSyncIn");
-    this->_loader.load<void(void*)>("plugins/Physics/liborbital_physics", "physicsSyncOut", "physicsSyncOut");
-
-    auto physicsInit = this->_loader.get<void(void*, void*)>("physicsInit");
-    physicsInit(&this->_registry, &this->_dispatcher);
 }
 
 void core::Simulation::launchSimulation()
@@ -72,26 +65,23 @@ void core::Simulation::launchSimulation()
 
 void core::Simulation::_launchPhysics()
 {
-    auto getName = this->_loader.get<std::string()>("getName");
-    auto syncIn = this->_loader.get<void(void*)>("physicsSyncIn");
-    auto syncOut = this->_loader.get<void(void*)>("physicsSyncOut");
-    auto updatePhysics = this->_loader.get<void(void*, void*, double)>("physicsUpdate");
     auto accumulator = 0.f;
 
     while (this->is_running) {
         if (this->physicsAccumulator >= this->physicsThreshold) {
             accumulator = physicsAccumulator;
-            syncIn(&this->_registry);
-            updatePhysics(&this->_registry, &this->_dispatcher, 7200);
+            this->_physicsEngine->syncIn(this->_registry);
+            this->_physicsEngine->update(this->_registry, this->_dispatcher, 7200);
             {
                 std::scoped_lock lock(this->_registryMutex);
-                syncOut(&this->_registry);
+                this->_physicsEngine->syncOut(this->_registry);
             }
             // std::cout << std::format("Physics elapsed time: {} ms", (this->physicsAccumulator - accumulator) * 1000)
             //           << std::endl;
             this->physicsAccumulator -= this->physicsThreshold;
         }
     }
+    this->_physicsEngine->shutdown(this->_registry);
 }
 
 void core::Simulation::_launchRenderer()
