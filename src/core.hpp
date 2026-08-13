@@ -4,9 +4,11 @@
 #include <condition_variable>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
+#include <expected>
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
+#include <iostream>
 #include <mutex>
 #include <queue>
 #include <types/RenderDataBuffer.hpp>
@@ -16,6 +18,7 @@ namespace core {
     enum class SimulationState {
         OK,
         INITIALIZATION_ERROR,
+        SHARED_LOADER_ERROR,
         SIMULATION_ERROR,
     };
 
@@ -28,6 +31,16 @@ namespace core {
             void _launchPhysics();
             void _launchRenderer();
             void _launchUI();
+
+            template <typename T, typename E>
+            [[nodiscard]] core::SimulationState reportLoaderError(std::expected<T, E> sharedLib)
+            {
+                if (!sharedLib) {
+                    std::cerr << sharedLib.error() << std::endl;
+                    return core::SimulationState::SHARED_LOADER_ERROR;
+                }
+                return core::SimulationState::OK;
+            }
 
             SimulationState _loadEngines() noexcept;
 

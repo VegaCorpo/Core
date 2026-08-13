@@ -4,6 +4,7 @@
 #include <components/position.hpp>
 #include <components/velocity.hpp>
 #include <entt/entity/fwd.hpp>
+#include <expected>
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
@@ -16,29 +17,61 @@
 
 core::SimulationState core::Simulation::initializeCore(const std::string& filename) noexcept
 {
-    this->_loader.load<common::LoaderStatus(void*, const std::string&)>("plugins/Loader/liborbital_loader",
-                                                                        "createScene", "createScene");
+    auto loader = this->_loader.load<common::LoaderStatus(void*, const std::string&)>(
+        "plugins/Loader/liborbital_loader", "createScene", "createScene");
+    if (this->reportLoaderError(loader) == core::SimulationState::SHARED_LOADER_ERROR)
+        return core::SimulationState::SHARED_LOADER_ERROR;
+
     auto createScene = this->_loader.get<common::LoaderStatus(void*, const std::string&)>("createScene");
-    if (createScene(&this->_registry, filename) != common::LoaderStatus::SUCCESS)
+    if (this->reportLoaderError(createScene) == core::SimulationState::SHARED_LOADER_ERROR)
+        return core::SimulationState::SHARED_LOADER_ERROR;
+
+    if (createScene.value()(&this->_registry, filename) != common::LoaderStatus::SUCCESS)
         return core::SimulationState::INITIALIZATION_ERROR;
 
-    this->_loadEngines();
+    if (this->_loadEngines() != core::SimulationState::OK)
+        return core::SimulationState::SHARED_LOADER_ERROR;
     return core::SimulationState::OK;
 }
 
 core::SimulationState core::Simulation::_loadEngines() noexcept
 {
-    this->_loader.load<std::unique_ptr<common::IPhysicsEngine>()>("plugins/Physics/liborbital_physics", "get_engine",
-                                                   "get_physics_engine");
+    auto physics = this->_loader.load<std::unique_ptr<common::IPhysicsEngine>()>("plugins/Physics/liborbital_physics",
+                                                                                 "get_engine", "get_physics_engine");
+
+    auto render = this->_loader.load<std::unique_ptr<common::IRenderEngine>()>("plugins/Renderer/liborbital_render",
+                                                                               "get_engine", "get_render_engine");
+
+    auto ui = this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/Renderer/liborbital_render",
+                                                                       "get_ui_engine", "get_render_ui_engine");
+
+    if (this->reportLoaderError(physics) == core::SimulationState::SHARED_LOADER_ERROR)
+        return core::SimulationState::SHARED_LOADER_ERROR;
+
+    if (this->reportLoaderError(render) == core::SimulationState::SHARED_LOADER_ERROR)
+        return core::SimulationState::SHARED_LOADER_ERROR;
+
+    if (this->reportLoaderError(ui) == core::SimulationState::SHARED_LOADER_ERROR)
+        return core::SimulationState::SHARED_LOADER_ERROR;
 
     auto physicsFactory = this->_loader.get<std::unique_ptr<common::IPhysicsEngine>()>("get_physics_engine");
-    this->_physicsEngine = physicsFactory();
+    if (this->reportLoaderError(physicsFactory) == core::SimulationState::SHARED_LOADER_ERROR)
+        return core::SimulationState::SHARED_LOADER_ERROR;
+
+    this->_physicsEngine = physicsFactory.value()();
     this->_physicsEngine->init(this->_registry, this->_dispatcher);
 
-    // this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine",
-    // "get_ui_engine"); auto uiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
-    // this->_uiEngine = uiFactory();
+    auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
+    auto renderUiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_render_ui_engine");
 
+    if (this->reportLoaderError(renderFactory) == core::SimulationState::SHARED_LOADER_ERROR)
+        return core::SimulationState::SHARED_LOADER_ERROR;
+
+    if (this->reportLoaderError(renderUiFactory) == core::SimulationState::SHARED_LOADER_ERROR)
+        return core::SimulationState::SHARED_LOADER_ERROR;
+
+    this->_renderEngine = renderFactory.value()();
+    this->_uiEngine = renderUiFactory.value()();
     return core::SimulationState::OK;
 }
 
@@ -86,21 +119,6 @@ void core::Simulation::_launchPhysics()
 
 void core::Simulation::_launchRenderer()
 {
-    this->_loader.load<std::unique_ptr<common::IRenderEngine>()>("plugins/Renderer/liborbital_render", "get_engine",
-                                                                 "get_render_engine");
-    this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/Renderer/liborbital_render", "get_ui_engine",
-                                                             "get_render_ui_engine");
-
-    auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
-    auto renderUiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_render_ui_engine");
-
-    this->_renderEngine = renderFactory();
-    this->_uiEngine = renderUiFactory();
-
-    if (!this->_renderEngine || !this->_uiEngine) {
-        throw std::runtime_error("Failed to load Render or UI engine");
-    }
-
     this->_renderEngine->init();
     this->_uiEngine->init(this->_renderEngine->getWindowHandle());
 
