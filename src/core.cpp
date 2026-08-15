@@ -42,8 +42,8 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
     auto render = this->_loader.load<std::unique_ptr<common::IRenderEngine>()>("plugins/Renderer/liborbital_render",
                                                                                "get_engine", "get_render_engine");
 
-    auto ui = this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui",
-                                                                       "get_engine", "get_ui_engine");
+    auto ui = this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine",
+                                                                       "get_ui_engine");
 
     if (this->reportLoaderError(physics) == core::SimulationState::SHARED_LOADER_ERROR)
         return core::SimulationState::SHARED_LOADER_ERROR;
@@ -59,7 +59,9 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
         return core::SimulationState::SHARED_LOADER_ERROR;
 
     this->_physicsEngine = physicsFactory.value()();
-    this->_physicsEngine->init(this->_registry, this->_dispatcher);
+
+    core::PhysicsSync::gather(this->_registry, this->_world_state);
+    this->_physicsEngine->init(this->_world_state);
 
     auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
     auto renderUiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
@@ -98,23 +100,37 @@ void core::Simulation::launchSimulation()
 
 void core::Simulation::_launchPhysics()
 {
-    auto accumulator = 0.f;
-
     while (this->is_running) {
         if (this->physicsAccumulator >= this->physicsThreshold) {
-            accumulator = physicsAccumulator;
-            this->_physicsEngine->syncIn(this->_registry);
-            this->_physicsEngine->update(this->_registry, this->_dispatcher, 7200);
-            {
-                std::scoped_lock lock(this->_registryMutex);
-                this->_physicsEngine->syncOut(this->_registry);
-            }
-            // std::cout << std::format("Physics elapsed time: {} ms", (this->physicsAccumulator - accumulator) * 1000)
-            //           << std::endl;
             this->physicsAccumulator -= this->physicsThreshold;
+            this->_stepPhysics();
         }
     }
-    this->_physicsEngine->shutdown(this->_registry);
+    this->_physicsEngine->shutdown();
+}
+
+void core::Simulation::_stepPhysics()
+{
+    this->_syncPhysicsIn();
+    this->_physicsEngine->update(core::PHYSICS_DEV_TIME_STEP);
+    // this->_syncPhysicsOut();
+}
+
+void core::Simulation::_syncPhysicsIn()
+{
+    {
+        std::scoped_lock lock(this->_registryMutex);
+        core::PhysicsSync::gather(this->_registry, this->_world_state);
+    }
+    this->_physicsEngine->syncIn(this->_world_state);
+}
+
+void core::Simulation::_syncPhysicsOut()
+{
+    const common::WorldState world = this->_physicsEngine->syncOut();
+
+    std::scoped_lock lock(this->_registryMutex);
+    core::PhysicsSync::scatter(this->_registry, world);
 }
 
 void core::Simulation::_launchRenderer()
