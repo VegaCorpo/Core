@@ -20,7 +20,9 @@ int main(int const argc, char const* argv[])
         return EXIT_FAILURE;
     }
 
-    simulation.initializeCore(argv[1]);
+    if (simulation.initializeCore(argv[1]) != core::SimulationState::OK) {
+        return EXIT_FAILURE;
+    }
     simulation.launchSimulation();
 
     return EXIT_SUCCESS;

@@ -6,11 +6,9 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <format>
 #include <functional>
-#include <iostream>
-#include <memory>
+#include <expected>
 #include <string>
 #include <unordered_map>
-#include "types/types.hpp"
 
 namespace utils {
     class SharedLoader {
@@ -26,7 +24,7 @@ namespace utils {
             };
 
             template <typename T>
-            void load(const std::string& pathToLib, const std::string& symbole, const std::string& libName)
+            std::expected<void, std::string> load(const std::string& pathToLib, const std::string& symbole, const std::string& libName)
             {
                 try {
                     boost::dll::fs::path libPath = pathToLib;
@@ -36,15 +34,16 @@ namespace utils {
                     this->_loadedLib[libName] = std::function<T>(sym);
                 }
                 catch (const boost::wrapexcept<boost::system::system_error>& error) {
-                    throw SharedLoaderError(std::format("Library loading failed {}", error.what()));
+                    std::unexpected(std::format("Library loading failed {}", error.what()));
                 }
+                return {};
             };
 
             template <typename T>
-            [[nodiscard]] std::function<T> get(const std::string& libName)
+            [[nodiscard]] std::expected<std::function<T>, std::string> get(const std::string& libName)
             {
                 if (this->_loadedLib.find(libName) == this->_loadedLib.end()) {
-                    throw SharedLoaderError(std::format("Symbol not found {}", libName));
+                    return std::unexpected(std::format("Symbol not found {}", libName));
                 }
                 return std::any_cast<std::function<T>>(this->_loadedLib[libName]);
             }
