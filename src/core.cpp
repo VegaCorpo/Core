@@ -112,7 +112,7 @@ void core::Simulation::_launchPhysics()
 void core::Simulation::_stepPhysics()
 {
     this->_syncPhysicsIn();
-    this->_physicsEngine->update(core::PHYSICS_TIME_STEP);
+    this->_physicsEngine->update(core::PHYSICS_DEV_TIME_STEP);
     // this->_syncPhysicsOut();
 }
 
