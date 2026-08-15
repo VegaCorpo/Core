@@ -12,9 +12,12 @@
 #include <mutex>
 #include <queue>
 #include <types/RenderDataBuffer.hpp>
+#include "src/PhysicsSync/PhysicsSync.hpp"
 #include "src/SharedLoader/SharedLoader.hpp"
 
 namespace core {
+    inline constexpr double PHYSICS_DEV_TIME_STEP = 7200.0;
+
     enum class SimulationState {
         OK,
         INITIALIZATION_ERROR,
@@ -31,6 +34,12 @@ namespace core {
             void _launchPhysics();
             void _launchRenderer();
             void _launchUI();
+
+            void _stepPhysics();
+
+            void _syncPhysicsIn();
+
+            void _syncPhysicsOut();
 
             template <typename T, typename E>
             [[nodiscard]] core::SimulationState reportLoaderError(std::expected<T, E> sharedLib)
@@ -70,6 +79,7 @@ namespace core {
             std::queue<common::RenderDataBuffer> _renderBufferQueue;
 
             std::atomic<bool> is_running = true;
+
             common::WorldState _world_state;
     };
 } // namespace core
