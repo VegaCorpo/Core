@@ -43,6 +43,7 @@ endif()
 add_executable(orbital-engine
     src/main.cpp
     src/core.cpp
+    src/SharedLoader/SharedLoader.cpp
 )
 
 target_link_libraries(orbital-engine PRIVATE EnTT::EnTT Common Boost::dll)

@@ -7,8 +7,10 @@
 #include <format>
 #include <functional>
 #include <expected>
+#include <map>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace utils {
     class SharedLoader {
@@ -48,8 +50,12 @@ namespace utils {
                 return std::any_cast<std::function<T>>(this->_loadedLib[libName]);
             }
 
+            void getPlugins();
+
+            void printAvailablePlugins();
         private:
             std::unordered_map<std::string, std::any> _loadedLib;
+            std::map<std::string, std::vector<std::string>> _availabePlugins;
     };
 
 } // namespace utils

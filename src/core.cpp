@@ -17,6 +17,8 @@
 
 core::SimulationState core::Simulation::initializeCore(const std::string& filename) noexcept
 {
+    this->_loader.getPlugins();
+    this->_loader.printAvailablePlugins();
     auto loader = this->_loader.load<common::LoaderStatus(void*, const std::string&)>(
         "plugins/Loader/liborbital_loader", "createScene", "createScene");
     if (this->reportLoaderError(loader) == core::SimulationState::SHARED_LOADER_ERROR)
