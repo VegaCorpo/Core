@@ -42,8 +42,8 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
     auto render = this->_loader.load<std::unique_ptr<common::IRenderEngine>()>("plugins/Renderer/liborbital_render",
                                                                                "get_engine", "get_render_engine");
 
-    auto ui = this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/Renderer/liborbital_render",
-                                                                       "get_ui_engine", "get_render_ui_engine");
+    auto ui = this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui",
+                                                                       "get_engine", "get_ui_engine");
 
     if (this->reportLoaderError(physics) == core::SimulationState::SHARED_LOADER_ERROR)
         return core::SimulationState::SHARED_LOADER_ERROR;
@@ -62,7 +62,7 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
     this->_physicsEngine->init(this->_registry, this->_dispatcher);
 
     auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
-    auto renderUiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_render_ui_engine");
+    auto renderUiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
 
     if (this->reportLoaderError(renderFactory) == core::SimulationState::SHARED_LOADER_ERROR)
         return core::SimulationState::SHARED_LOADER_ERROR;
