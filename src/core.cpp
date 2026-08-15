@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <chrono>
 #include <components/acceleration.hpp>
 #include <components/mass.hpp>
