@@ -29,11 +29,11 @@ core::SimulationState core::Simulation::initializeCore(const std::string& filena
 core::SimulationState core::Simulation::_loadEngines() noexcept
 {
     this->_loader.load<std::unique_ptr<common::IPhysicsEngine>()>("plugins/Physics/liborbital_physics", "get_engine",
-                                                   "get_physics_engine");
+                                                                  "get_physics_engine");
 
     auto physicsFactory = this->_loader.get<std::unique_ptr<common::IPhysicsEngine>()>("get_physics_engine");
     this->_physicsEngine = physicsFactory();
-    this->_physicsEngine->init(this->_registry, this->_dispatcher);
+    this->_physicsEngine->init(this->_world_state);
 
     // this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine",
     // "get_ui_engine"); auto uiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
@@ -45,12 +45,12 @@ core::SimulationState core::Simulation::_loadEngines() noexcept
 void core::Simulation::launchSimulation()
 {
     std::thread physicsThread(&core::Simulation::_launchPhysics, this);
-    std::thread rendererThread(&core::Simulation::_launchRenderer, this);
-    std::thread uiThread(&core::Simulation::_launchUI, this);
+    // std::thread rendererThread(&core::Simulation::_launchRenderer, this);
+    // std::thread uiThread(&core::Simulation::_launchUI, this);
 
     physicsThread.detach();
-    rendererThread.detach();
-    uiThread.detach();
+    // rendererThread.detach();
+    // uiThread.detach();
 
     auto prev = std::chrono::high_resolution_clock::now();
     while (this->is_running) {
@@ -70,18 +70,18 @@ void core::Simulation::_launchPhysics()
     while (this->is_running) {
         if (this->physicsAccumulator >= this->physicsThreshold) {
             accumulator = physicsAccumulator;
-            this->_physicsEngine->syncIn(this->_registry);
-            this->_physicsEngine->update(this->_registry, this->_dispatcher, 7200);
+            this->_physicsEngine->syncIn(this->_world_state);
+            this->_physicsEngine->update(7200);
             {
                 std::scoped_lock lock(this->_registryMutex);
-                this->_physicsEngine->syncOut(this->_registry);
+                this->_world_state = this->_physicsEngine->syncOut();
             }
-            // std::cout << std::format("Physics elapsed time: {} ms", (this->physicsAccumulator - accumulator) * 1000)
-            //           << std::endl;
+            std::cout << std::format("Physics elapsed time: {} ms", (this->physicsAccumulator - accumulator) * 1000)
+                      << std::endl;
             this->physicsAccumulator -= this->physicsThreshold;
         }
     }
-    this->_physicsEngine->shutdown(this->_registry);
+    this->_physicsEngine->shutdown();
 }
 
 void core::Simulation::_launchRenderer()

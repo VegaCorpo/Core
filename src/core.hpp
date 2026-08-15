@@ -57,5 +57,6 @@ namespace core {
             std::queue<common::RenderDataBuffer> _renderBufferQueue;
 
             std::atomic<bool> is_running = true;
+            common::WorldState _world_state;
     };
 } // namespace core
