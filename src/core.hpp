@@ -12,7 +12,6 @@
 #include <mutex>
 #include <queue>
 #include <types/RenderDataBuffer.hpp>
-#include "src/PhysicsSync/PhysicsSync.hpp"
 #include "src/SharedLoader/SharedLoader.hpp"
 
 namespace core {
@@ -33,7 +32,6 @@ namespace core {
         private:
             void _launchPhysics();
             void _launchRenderer();
-            void _launchUI();
 
             void _stepPhysics();
 
@@ -80,6 +78,6 @@ namespace core {
 
             std::atomic<bool> is_running = true;
 
-            common::WorldState _world_state;
+            common::SpecificDataPhysics _world_state;
     };
 } // namespace core

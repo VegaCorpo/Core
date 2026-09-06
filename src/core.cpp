@@ -11,6 +11,8 @@
 #include <mutex>
 #include <thread>
 #include "SharedLoader/SharedLoader.hpp"
+#include "src/PhysicsSync/PhysicsSync.hpp"
+
 
 #include <types/types.hpp>
 #include "core.hpp"
@@ -81,11 +83,9 @@ void core::Simulation::launchSimulation()
 {
     std::thread physicsThread(&core::Simulation::_launchPhysics, this);
     std::thread rendererThread(&core::Simulation::_launchRenderer, this);
-    std::thread uiThread(&core::Simulation::_launchUI, this);
 
     physicsThread.detach();
     rendererThread.detach();
-    uiThread.detach();
 
     auto prev = std::chrono::high_resolution_clock::now();
     while (this->is_running) {
@@ -127,7 +127,7 @@ void core::Simulation::_syncPhysicsIn()
 
 void core::Simulation::_syncPhysicsOut()
 {
-    const common::WorldState world = this->_physicsEngine->syncOut();
+    const common::SpecificDataPhysics world = this->_physicsEngine->syncOut();
 
     std::scoped_lock lock(this->_registryMutex);
     core::PhysicsSync::scatter(this->_registry, world);
@@ -165,16 +165,5 @@ void core::Simulation::_launchRenderer()
             this->_renderEngine->update();
             this->_renderEngine->render([this]() { this->_uiEngine->render(); });
         }
-    }
-}
-
-void core::Simulation::_launchUI()
-{
-    std::unique_lock<std::mutex> lock(this->_initMutex);
-    this->_renderInitCv.wait(lock);
-    lock.unlock();
-
-    while (this->is_running) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 }
