@@ -33,6 +33,9 @@ namespace core {
             void _launchPhysics();
             void _launchRenderer();
 
+            void _initPhysics();
+            void _initRender();
+
             void _stepPhysics();
 
             void _syncPhysicsIn();
@@ -62,6 +65,7 @@ namespace core {
             std::atomic<bool> is_running = true;
 
             common::SpecificDataPhysics _specificDataPhysics;
+            common::SpecificDataRender _specificDataRender;
             TripleBuffering<common::WorldState> _worldState;
 
     };

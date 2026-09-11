@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdio>
 #include <components/acceleration.hpp>
 #include <components/mass.hpp>
 #include <components/position.hpp>
@@ -11,6 +12,8 @@
 #include <thread>
 #include "src/ModuleManager/ModuleManager.hpp"
 #include "src/PhysicsSync/PhysicsSync.hpp"
+#include "src/RenderSync/RenderSync.hpp"
+#include "types/World.hpp"
 
 
 #include <types/types.hpp>
@@ -23,6 +26,9 @@ core::SimulationState core::Simulation::initializeCore(const std::string& filena
 
     if (this->_moduleManager._loaderEngine->createScene(&this->_registry, filename) != common::LoaderStatus::SUCCESS)
         return core::SimulationState::INITIALIZATION_ERROR;
+
+    this->_initPhysics();
+    this->_initRender();
 
     return core::SimulationState::OK;
 }
@@ -46,6 +52,17 @@ void core::Simulation::launchSimulation()
     }
 }
 
+void core::Simulation::_initPhysics()
+{
+    core::PhysicsSync::gather(this->_registry, this->_specificDataPhysics);
+    this->_moduleManager._physicsEngine->init(this->_specificDataPhysics);
+}
+
+void core::Simulation::_initRender()
+{
+    core::RenderSync::gather(this->_registry, this->_specificDataRender);
+}
+
 void core::Simulation::_launchPhysics()
 {
     while (this->is_running) {
@@ -66,24 +83,23 @@ void core::Simulation::_stepPhysics()
 
 void core::Simulation::_syncPhysicsIn()
 {
-    {
-        std::scoped_lock lock(this->_registryMutex);
-        core::PhysicsSync::gather(this->_registry, this->_specificDataPhysics);
-    }
-    this->_moduleManager._physicsEngine->syncIn(this->_specificDataPhysics);
+    //{
+    //    std::scoped_lock lock(this->_registryMutex);
+    //    core::PhysicsSync::gather(this->_registry, this->_specificDataPhysics);
+    //}
+    //this->_moduleManager._physicsEngine->syncIn(this->_specificDataPhysics);
 }
 
 void core::Simulation::_syncPhysicsOut()
 {
-    const common::SpecificDataPhysics world = this->_moduleManager._physicsEngine->syncOut();
-
-    std::scoped_lock lock(this->_registryMutex);
-    core::PhysicsSync::scatter(this->_registry, world);
+    common::WorldState &worldState = this->_worldState.getWriter();
+    worldState = this->_moduleManager._physicsEngine->publish();
+    this->_worldState.publish();
 }
 
 void core::Simulation::_launchRenderer()
 {
-    this->_moduleManager._renderEngine->init();
+    this->_moduleManager._renderEngine->init(this->_specificDataRender);
     this->_moduleManager._uiEngine->init(this->_moduleManager._renderEngine->getWindowHandle());
 
     this->_renderInitCv.notify_all();
@@ -106,9 +122,9 @@ void core::Simulation::_launchRenderer()
             }
 
             // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
-            {
-                std::scoped_lock lock(this->_registryMutex);
-                this->_moduleManager._renderEngine->syncIn(this->_registry);
+            if (this->_worldState.tryConsume()) {
+                const common::WorldState& state = this->_worldState.getReader();
+                this->_moduleManager._renderEngine->syncIn(state);
             }
             this->_moduleManager._renderEngine->update();
             this->_moduleManager._renderEngine->render([this]() { this->_moduleManager._uiEngine->render(); });
