@@ -4,13 +4,12 @@
 #include <components/position.hpp>
 #include <components/velocity.hpp>
 #include <entt/entity/fwd.hpp>
-#include <expected>
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
 #include <mutex>
 #include <thread>
-#include "SharedLoader/SharedLoader.hpp"
+#include "src/ModuleManager/ModuleManager.hpp"
 #include "src/PhysicsSync/PhysicsSync.hpp"
 
 
@@ -19,63 +18,12 @@
 
 core::SimulationState core::Simulation::initializeCore(const std::string& filename) noexcept
 {
-    auto loader = this->_loader.load<common::LoaderStatus(void*, const std::string&)>(
-        "plugins/Loader/liborbital_loader", "createScene", "createScene");
-    if (this->reportLoaderError(loader) == core::SimulationState::SHARED_LOADER_ERROR)
+    if (this->_moduleManager._loadEngines() != core::ModuleManagerError::SUCCESS)
         return core::SimulationState::SHARED_LOADER_ERROR;
 
-    auto createScene = this->_loader.get<common::LoaderStatus(void*, const std::string&)>("createScene");
-    if (this->reportLoaderError(createScene) == core::SimulationState::SHARED_LOADER_ERROR)
-        return core::SimulationState::SHARED_LOADER_ERROR;
-
-    if (createScene.value()(&this->_registry, filename) != common::LoaderStatus::SUCCESS)
+    if (this->_moduleManager._loaderEngine->createScene(&this->_registry, filename) != common::LoaderStatus::SUCCESS)
         return core::SimulationState::INITIALIZATION_ERROR;
 
-    if (this->_loadEngines() != core::SimulationState::OK)
-        return core::SimulationState::SHARED_LOADER_ERROR;
-    return core::SimulationState::OK;
-}
-
-core::SimulationState core::Simulation::_loadEngines() noexcept
-{
-    auto physics = this->_loader.load<std::unique_ptr<common::IPhysicsEngine>()>("plugins/Physics/liborbital_physics",
-                                                                                 "get_engine", "get_physics_engine");
-
-    auto render = this->_loader.load<std::unique_ptr<common::IRenderEngine>()>("plugins/Renderer/liborbital_render",
-                                                                               "get_engine", "get_render_engine");
-
-    auto ui = this->_loader.load<std::unique_ptr<common::IUIEngine>()>("plugins/UI/liborbital_ui", "get_engine",
-                                                                       "get_ui_engine");
-
-    if (this->reportLoaderError(physics) == core::SimulationState::SHARED_LOADER_ERROR)
-        return core::SimulationState::SHARED_LOADER_ERROR;
-
-    if (this->reportLoaderError(render) == core::SimulationState::SHARED_LOADER_ERROR)
-        return core::SimulationState::SHARED_LOADER_ERROR;
-
-    if (this->reportLoaderError(ui) == core::SimulationState::SHARED_LOADER_ERROR)
-        return core::SimulationState::SHARED_LOADER_ERROR;
-
-    auto physicsFactory = this->_loader.get<std::unique_ptr<common::IPhysicsEngine>()>("get_physics_engine");
-    if (this->reportLoaderError(physicsFactory) == core::SimulationState::SHARED_LOADER_ERROR)
-        return core::SimulationState::SHARED_LOADER_ERROR;
-
-    this->_physicsEngine = physicsFactory.value()();
-
-    core::PhysicsSync::gather(this->_registry, this->_world_state);
-    this->_physicsEngine->init(this->_world_state);
-
-    auto renderFactory = this->_loader.get<std::unique_ptr<common::IRenderEngine>()>("get_render_engine");
-    auto renderUiFactory = this->_loader.get<std::unique_ptr<common::IUIEngine>()>("get_ui_engine");
-
-    if (this->reportLoaderError(renderFactory) == core::SimulationState::SHARED_LOADER_ERROR)
-        return core::SimulationState::SHARED_LOADER_ERROR;
-
-    if (this->reportLoaderError(renderUiFactory) == core::SimulationState::SHARED_LOADER_ERROR)
-        return core::SimulationState::SHARED_LOADER_ERROR;
-
-    this->_renderEngine = renderFactory.value()();
-    this->_uiEngine = renderUiFactory.value()();
     return core::SimulationState::OK;
 }
 
@@ -106,13 +54,13 @@ void core::Simulation::_launchPhysics()
             this->_stepPhysics();
         }
     }
-    this->_physicsEngine->shutdown();
+    this->_moduleManager._physicsEngine->shutdown();
 }
 
 void core::Simulation::_stepPhysics()
 {
     this->_syncPhysicsIn();
-    this->_physicsEngine->update(core::PHYSICS_DEV_TIME_STEP);
+    this->_moduleManager._physicsEngine->update(core::PHYSICS_DEV_TIME_STEP);
     this->_syncPhysicsOut();
 }
 
@@ -120,14 +68,14 @@ void core::Simulation::_syncPhysicsIn()
 {
     {
         std::scoped_lock lock(this->_registryMutex);
-        core::PhysicsSync::gather(this->_registry, this->_world_state);
+        core::PhysicsSync::gather(this->_registry, this->_specificDataPhysics);
     }
-    this->_physicsEngine->syncIn(this->_world_state);
+    this->_moduleManager._physicsEngine->syncIn(this->_specificDataPhysics);
 }
 
 void core::Simulation::_syncPhysicsOut()
 {
-    const common::SpecificDataPhysics world = this->_physicsEngine->syncOut();
+    const common::SpecificDataPhysics world = this->_moduleManager._physicsEngine->syncOut();
 
     std::scoped_lock lock(this->_registryMutex);
     core::PhysicsSync::scatter(this->_registry, world);
@@ -135,13 +83,13 @@ void core::Simulation::_syncPhysicsOut()
 
 void core::Simulation::_launchRenderer()
 {
-    this->_renderEngine->init();
-    this->_uiEngine->init(this->_renderEngine->getWindowHandle());
+    this->_moduleManager._renderEngine->init();
+    this->_moduleManager._uiEngine->init(this->_moduleManager._renderEngine->getWindowHandle());
 
     this->_renderInitCv.notify_all();
 
     while (this->is_running) {
-        if (!this->_renderEngine->isRunning()) {
+        if (!this->_moduleManager._renderEngine->isRunning()) {
             this->is_running = false;
             break;
         }
@@ -152,7 +100,7 @@ void core::Simulation::_launchRenderer()
                 std::scoped_lock lock(this->_renderBufferMutex);
                 if (this->_renderBufferQueue.empty() == false) {
                     auto renderBuffer = this->_renderBufferQueue.front();
-                    this->_renderEngine->setVertexBuffer(renderBuffer);
+                    this->_moduleManager._renderEngine->setVertexBuffer(renderBuffer);
                     this->_renderBufferQueue.pop();
                 }
             }
@@ -160,10 +108,10 @@ void core::Simulation::_launchRenderer()
             // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
             {
                 std::scoped_lock lock(this->_registryMutex);
-                this->_renderEngine->syncIn(this->_registry);
+                this->_moduleManager._renderEngine->syncIn(this->_registry);
             }
-            this->_renderEngine->update();
-            this->_renderEngine->render([this]() { this->_uiEngine->render(); });
+            this->_moduleManager._renderEngine->update();
+            this->_moduleManager._renderEngine->render([this]() { this->_moduleManager._uiEngine->render(); });
         }
     }
 }

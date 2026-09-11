@@ -44,6 +44,7 @@ add_executable(orbital-engine
     src/main.cpp
     src/core.cpp
     src/PhysicsSync/PhysicsSync.cpp
+    src/ModuleManager/ModuleManager.cpp
 )
 
 target_link_libraries(orbital-engine PRIVATE EnTT::EnTT Common Boost::dll)
