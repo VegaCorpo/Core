@@ -1,12 +1,12 @@
 #pragma once
 
+#include <any>
 #include <expected>
 #include <iostream>
+#include <map>
 #include <memory>
-#include "interfaces/ILoaderEngine.hpp"
-#include "interfaces/IPhysicsEngine.hpp"
-#include "interfaces/IRenderEngine.hpp"
-#include "interfaces/IUIEngine.hpp"
+#include <string>
+#include <typeindex>
 #include "src/SharedLoader/SharedLoader.hpp"
 
 namespace core {
@@ -17,23 +17,38 @@ namespace core {
 
     class ModuleManager {
         public:
-            ModuleManagerError _loadEngines() noexcept;
+            ModuleManagerError loadEngines() noexcept;
 
-            // temporary in public
-            utils::SharedLoader _loader;
-
-            std::unique_ptr<common::ILoaderEngine> _loaderEngine = nullptr;
-            std::unique_ptr<common::IPhysicsEngine> _physicsEngine = nullptr;
-            std::unique_ptr<common::IUIEngine> _uiEngine = nullptr;
-            std::unique_ptr<common::IRenderEngine> _renderEngine = nullptr;
+            template <typename Interface>
+            Interface* get_Module()
+            {
+                auto it = this->_engines.find(std::type_index(typeid(Interface)));
+                if (it == this->_engines.end())
+                    return nullptr;
+                return std::any_cast<std::shared_ptr<Interface>&>(it->second).get();
+            }
 
         private:
+            utils::SharedLoader _loader;
+            std::map<std::type_index, std::any> _engines;
+
             ModuleManagerError _getModuleInterface();
 
-            ModuleManagerError _loadPhysics();
-            ModuleManagerError _loadRenderer();
-            ModuleManagerError _loadUi();
-            ModuleManagerError _loadLoader();
+            template <typename Interface>
+            core::ModuleManagerError _loadModule(const std::string& pluginPath, const std::string& loadSymbol,
+                                                 const std::string& getSymbol)
+            {
+                auto handle = this->_loader.load<std::shared_ptr<Interface>()>(pluginPath, loadSymbol, getSymbol);
+                if (this->reportLoaderError(handle) == core::ModuleManagerError::FAILED_TO_LOAD_MODULE)
+                    return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
+
+                auto factory = this->_loader.get<std::shared_ptr<Interface>()>(getSymbol);
+                if (this->reportLoaderError(factory) == core::ModuleManagerError::FAILED_TO_LOAD_MODULE)
+                    return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
+
+                this->_store(factory.value()());
+                return core::ModuleManagerError::SUCCESS;
+            }
 
             template <typename T, typename E>
             [[nodiscard]] ModuleManagerError reportLoaderError(std::expected<T, E> sharedLib)
@@ -45,6 +60,11 @@ namespace core {
                 return core::ModuleManagerError::SUCCESS;
             }
 
-
+            template <typename Interface>
+            void _store(std::shared_ptr<Interface> engine)
+            {
+                this->_engines[std::type_index(typeid(Interface))] = std::move(engine);
+            }
     };
-}
+} // namespace core
+

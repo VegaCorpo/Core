@@ -38,8 +38,6 @@ namespace core {
 
             void _stepPhysics();
 
-            void _syncPhysicsIn();
-
             void _syncPhysicsOut();
 
             ModuleManager _moduleManager;
