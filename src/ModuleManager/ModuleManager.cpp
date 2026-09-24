@@ -27,9 +27,5 @@ core::ModuleManagerError core::ModuleManager::_getModuleInterface()
 
 core::ModuleManagerError core::ModuleManager::loadEngines() noexcept
 {
-    this->_loadModule<common::IPhysicsEngine>("plugins/Physics/liborbital_physics", "get_engine", "get_physics_engine");
-    this->_loadModule<common::IRenderEngine>("plugins/Renderer/liborbital_render", "get_engine", "get_render_engine");
-    this->_loadModule<common::IUIEngine>("plugins/UI/liborbital_ui", "get_engine", "get_ui_engine");
-    this->_loadModule<common::ILoaderEngine>("plugins/Loader/liborbital_loader.so", "get_engine", "get_loader_engine");
     return core::ModuleManager::_getModuleInterface();
 }
