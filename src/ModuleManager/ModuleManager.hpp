@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <typeindex>
+#include "interfaces/IModule.hpp"
 #include "src/SharedLoader/SharedLoader.hpp"
 
 namespace core {
@@ -25,12 +26,12 @@ namespace core {
                 auto it = this->_engines.find(std::type_index(typeid(Interface)));
                 if (it == this->_engines.end())
                     return nullptr;
-                return std::any_cast<std::shared_ptr<Interface>&>(it->second).get();
+                return static_cast<Interface*>(it->second.get());
             }
 
         private:
             utils::SharedLoader _loader;
-            std::map<std::type_index, std::any> _engines;
+            std::map<std::type_index, std::unique_ptr<common::IModule>> _engines;
 
             ModuleManagerError _getModuleInterface();
 
@@ -38,11 +39,11 @@ namespace core {
             core::ModuleManagerError _loadModule(const std::string& pluginPath, const std::string& loadSymbol,
                                                  const std::string& getSymbol)
             {
-                auto handle = this->_loader.load<std::shared_ptr<Interface>()>(pluginPath, loadSymbol, getSymbol);
+                auto handle = this->_loader.load<std::unique_ptr<Interface>()>(pluginPath, loadSymbol, getSymbol);
                 if (this->reportLoaderError(handle) == core::ModuleManagerError::FAILED_TO_LOAD_MODULE)
                     return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
 
-                auto factory = this->_loader.get<std::shared_ptr<Interface>()>(getSymbol);
+                auto factory = this->_loader.get<std::unique_ptr<Interface>()>(getSymbol);
                 if (this->reportLoaderError(factory) == core::ModuleManagerError::FAILED_TO_LOAD_MODULE)
                     return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
 
@@ -61,7 +62,7 @@ namespace core {
             }
 
             template <typename Interface>
-            void _store(std::shared_ptr<Interface> engine)
+            void _store(std::unique_ptr<Interface> engine)
             {
                 this->_engines[std::type_index(typeid(Interface))] = std::move(engine);
             }
