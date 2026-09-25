@@ -4,7 +4,7 @@
 #include "interfaces/IRenderEngine.hpp"
 #include "interfaces/IUIEngine.hpp"
 
-core::ModuleManagerError core::ModuleManager::_getModuleInterface()
+core::ModuleManagerError core::ModuleManager::loadEngines() noexcept
 {
     if (this->_loadModule<common::IPhysicsEngine>("plugins/Physics/liborbital_physics", "get_engine",
                                                   "get_physics_engine") ==
@@ -23,9 +23,4 @@ core::ModuleManagerError core::ModuleManager::_getModuleInterface()
         return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
 
     return core::ModuleManagerError::SUCCESS;
-}
-
-core::ModuleManagerError core::ModuleManager::loadEngines() noexcept
-{
-    return core::ModuleManager::_getModuleInterface();
 }

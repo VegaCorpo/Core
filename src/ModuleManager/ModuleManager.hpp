@@ -33,8 +33,6 @@ namespace core {
             utils::SharedLoader _loader;
             std::map<std::type_index, std::unique_ptr<common::IModule>> _engines;
 
-            ModuleManagerError _getModuleInterface();
-
             template <typename Interface>
             core::ModuleManagerError _loadModule(const std::string& pluginPath, const std::string& loadSymbol,
                                                  const std::string& getSymbol)
