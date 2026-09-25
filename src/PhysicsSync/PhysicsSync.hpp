@@ -11,11 +11,11 @@
 namespace core {
     class PhysicsSync {
         public:
-            static void gather(const entt::registry& registry, common::WorldState& world);
+            static void gather(const entt::registry& registry, common::SpecificDataPhysics& world);
 
-            static std::size_t scatter(entt::registry& registry, const common::WorldState& world);
+            static std::size_t scatter(entt::registry& registry, const common::SpecificDataPhysics& world);
 
-            [[nodiscard]] static std::size_t consistentSize(const common::WorldState& world) noexcept;
+            [[nodiscard]] static std::size_t consistentSize(const common::SpecificDataPhysics& world) noexcept;
 
         private:
             static auto _simulableView(const entt::registry& registry)

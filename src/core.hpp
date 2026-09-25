@@ -4,16 +4,15 @@
 #include <condition_variable>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
-#include <expected>
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
-#include <iostream>
 #include <mutex>
 #include <queue>
 #include <types/RenderDataBuffer.hpp>
-#include "src/PhysicsSync/PhysicsSync.hpp"
-#include "src/SharedLoader/SharedLoader.hpp"
+#include "src/Buffers/buffers.hpp"
+#include "src/ModuleManager/ModuleManager.hpp"
+#include "types/World.hpp"
 
 namespace core {
     inline constexpr double PHYSICS_DEV_TIME_STEP = 7200.0;
@@ -33,32 +32,15 @@ namespace core {
         private:
             void _launchPhysics();
             void _launchRenderer();
-            void _launchUI();
+
+            void _initPhysics();
+            void _initRender();
 
             void _stepPhysics();
 
-            void _syncPhysicsIn();
-
             void _syncPhysicsOut();
 
-            template <typename T, typename E>
-            [[nodiscard]] core::SimulationState reportLoaderError(std::expected<T, E> sharedLib)
-            {
-                if (!sharedLib) {
-                    std::cerr << sharedLib.error() << std::endl;
-                    return core::SimulationState::SHARED_LOADER_ERROR;
-                }
-                return core::SimulationState::OK;
-            }
-
-            SimulationState _loadEngines() noexcept;
-
-            utils::SharedLoader _loader;
-
-            std::unique_ptr<common::IPhysicsEngine> _physicsEngine = nullptr;
-            std::unique_ptr<common::IUIEngine> _uiEngine = nullptr;
-            std::unique_ptr<common::IRenderEngine> _renderEngine = nullptr;
-
+            ModuleManager _moduleManager;
             entt::registry _registry;
             entt::dispatcher _dispatcher;
 
@@ -80,6 +62,9 @@ namespace core {
 
             std::atomic<bool> is_running = true;
 
-            common::WorldState _world_state;
+            common::SpecificDataPhysics _specificDataPhysics;
+            common::SpecificDataRender _specificDataRender;
+            TripleBuffering<common::WorldState> _worldState;
+
     };
 } // namespace core
