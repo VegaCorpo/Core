@@ -3,6 +3,7 @@
 #include <components/acceleration.hpp>
 #include <components/mass.hpp>
 #include <components/position.hpp>
+#include <components/radius.hpp>
 #include <components/velocity.hpp>
 #include <cstddef>
 #include <entt/entity/registry.hpp>
@@ -21,7 +22,8 @@ namespace core {
             static auto _simulableView(const entt::registry& registry)
             {
                 return registry.view<const common::components::Position, const common::components::Velocity,
-                                     const common::components::Acceleration, const common::components::Mass>();
+                                     const common::components::Acceleration, const common::components::Mass,
+                                     const common::components::Radius>();
             }
 
             [[nodiscard]] static std::size_t _toIdentifier(entt::entity entity) noexcept
