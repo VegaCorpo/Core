@@ -45,6 +45,7 @@ add_executable(orbital-engine
     src/core.cpp
     src/PhysicsSync/PhysicsSync.cpp
     src/RenderSync/RenderSync.cpp
+    src/UISync/UISync.cpp
     src/ModuleManager/ModuleManager.cpp
 )
 

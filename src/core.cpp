@@ -14,6 +14,7 @@
 #include "src/ModuleManager/ModuleManager.hpp"
 #include "src/PhysicsSync/PhysicsSync.hpp"
 #include "src/RenderSync/RenderSync.hpp"
+#include "src/UISync/UISync.hpp"
 #include "types/World.hpp"
 
 #include <types/types.hpp>
@@ -30,6 +31,7 @@ core::SimulationState core::Simulation::initializeCore(const std::string& filena
 
     this->_initPhysics();
     this->_initRender();
+    this->_initUI();
 
     return core::SimulationState::OK;
 }
@@ -64,6 +66,11 @@ void core::Simulation::_initRender()
     core::RenderSync::gather(this->_registry, this->_specificDataRender);
 }
 
+void core::Simulation::_initUI()
+{
+    core::UISync::gather(this->_registry, this->_specificDataUI);
+}
+
 void core::Simulation::_launchPhysics()
 {
     while (this->is_running) {
@@ -93,7 +100,7 @@ void core::Simulation::_launchRenderer()
     auto renderEngine = this->_moduleManager.get_Module<common::IRenderEngine>();
     auto uiEngine = this->_moduleManager.get_Module<common::IUIEngine>();
     renderEngine->init(this->_specificDataRender);
-    uiEngine->init(renderEngine->getWindowHandle());
+    uiEngine->init(renderEngine->getWindowHandle(), this->_specificDataUI);
 
     this->_renderInitCv.notify_all();
 
@@ -118,6 +125,7 @@ void core::Simulation::_launchRenderer()
             if (this->_worldState.tryConsume()) {
                 const common::WorldState& state = this->_worldState.getReader();
                 renderEngine->syncIn(state);
+                uiEngine->update(state);
             }
             renderEngine->update();
             renderEngine->render([this, uiEngine]() { uiEngine->render(); });
