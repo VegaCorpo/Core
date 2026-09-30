@@ -35,6 +35,7 @@ namespace core {
 
             void _initPhysics();
             void _initRender();
+            void _initUI();
 
             void _stepPhysics();
 
@@ -64,6 +65,7 @@ namespace core {
 
             common::SpecificDataPhysics _specificDataPhysics;
             common::SpecificDataRender _specificDataRender;
+            common::SpecificDataUI _specificDataUI;
             TripleBuffering<common::WorldState> _worldState;
 
     };
