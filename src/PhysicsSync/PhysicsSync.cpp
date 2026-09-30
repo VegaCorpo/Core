@@ -11,22 +11,22 @@ void core::PhysicsSync::gather(const entt::registry& registry, common::SpecificD
     world.positions.clear();
     world.velocities.clear();
     world.accelerations.clear();
-    world.mass.clear();
+    world.masses.clear();
     world.radius.clear();
 
     world.entitiesId.reserve(hint);
     world.positions.reserve(hint);
     world.velocities.reserve(hint);
     world.accelerations.reserve(hint);
-    world.mass.reserve(hint);
+    world.masses.reserve(hint);
     world.radius.reserve(hint);
 
     for (const auto [entity, position, velocity, acceleration, mass, radius] : view.each()) {
-        world.entities.push_back(core::PhysicsSync::_toIdentifier(entity));
+        world.entitiesId.push_back(core::PhysicsSync::_toIdentifier(entity));
         world.positions.push_back(position);
         world.velocities.push_back(velocity);
         world.accelerations.push_back(acceleration);
-        world.mass.push_back(mass);
+        world.masses.push_back(mass);
         world.radius.push_back(radius);
     }
 }
