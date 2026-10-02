@@ -12,19 +12,22 @@ void core::PhysicsSync::gather(const entt::registry& registry, common::SpecificD
     world.velocities.clear();
     world.accelerations.clear();
     world.masses.clear();
+    world.radius.clear();
 
     world.entitiesId.reserve(hint);
     world.positions.reserve(hint);
     world.velocities.reserve(hint);
     world.accelerations.reserve(hint);
     world.masses.reserve(hint);
+    world.radius.reserve(hint);
 
-    for (const auto [entity, position, velocity, acceleration, mass] : view.each()) {
+    for (const auto [entity, position, velocity, acceleration, mass, radius] : view.each()) {
         world.entitiesId.push_back(core::PhysicsSync::_toIdentifier(entity));
         world.positions.push_back(position);
         world.velocities.push_back(velocity);
         world.accelerations.push_back(acceleration);
         world.masses.push_back(mass);
+        world.radius.push_back(radius);
     }
 }
 
@@ -40,8 +43,9 @@ std::size_t core::PhysicsSync::scatter(entt::registry& registry, const common::S
             continue;
 
         auto [position, velocity, acceleration] =
-            registry.try_get<common::components::Position, common::components::Velocity,
-                             common::components::Acceleration>(entity);
+            registry
+                .try_get<common::components::Position, common::components::Velocity, common::components::Acceleration>(
+                    entity);
 
         if (position == nullptr || velocity == nullptr || acceleration == nullptr)
             continue;
