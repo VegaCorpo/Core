@@ -1,7 +1,7 @@
 #pragma once
 
 #include <components/acceleration.hpp>
-#include <components/angular_velocity.hpp>
+#include <components/angularVelocity.hpp>
 #include <components/mass.hpp>
 #include <components/orientation.hpp>
 #include <components/position.hpp>
