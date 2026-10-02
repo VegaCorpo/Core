@@ -1,7 +1,9 @@
 #pragma once
 
 #include <components/acceleration.hpp>
+#include <components/angular_velocity.hpp>
 #include <components/mass.hpp>
+#include <components/orientation.hpp>
 #include <components/position.hpp>
 #include <components/radius.hpp>
 #include <components/velocity.hpp>
@@ -19,6 +21,19 @@ namespace core {
             [[nodiscard]] static std::size_t consistentSize(const common::SpecificDataPhysics& world) noexcept;
 
         private:
+            static void _prepare(common::SpecificDataPhysics& world, std::size_t capacity);
+            static void _gatherRotation(const entt::registry& registry, entt::entity entity,
+                                        common::SpecificDataPhysics& world);
+            static void _scatterOrientation(entt::registry& registry, entt::entity entity,
+                                            const common::SpecificDataPhysics& world, std::size_t index);
+
+            template <typename Component>
+            [[nodiscard]] static Component _componentOrDefault(const entt::registry& registry, entt::entity entity)
+            {
+                const auto* component = registry.try_get<Component>(entity);
+                return component != nullptr ? *component : Component{};
+            }
+
             static auto _simulableView(const entt::registry& registry)
             {
                 return registry.view<const common::components::Position, const common::components::Velocity,
