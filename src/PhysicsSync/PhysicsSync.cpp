@@ -77,8 +77,10 @@ void core::PhysicsSync::_prepare(common::SpecificDataPhysics& world, std::size_t
 void core::PhysicsSync::_gatherRotation(const entt::registry& registry, entt::entity entity,
                                         common::SpecificDataPhysics& world)
 {
-    world.orientations.push_back(core::PhysicsSync::_componentOrDefault<common::components::Orientation>(registry, entity));
-    world.angularVelocities.push_back(core::PhysicsSync::_componentOrDefault<common::components::AngularVelocity>(registry, entity));
+    world.orientations.push_back(
+        core::PhysicsSync::_componentOrDefault<common::components::Orientation>(registry, entity));
+    world.angularVelocities.push_back(
+        core::PhysicsSync::_componentOrDefault<common::components::AngularVelocity>(registry, entity));
 }
 
 void core::PhysicsSync::_scatterOrientation(entt::registry& registry, entt::entity entity,
