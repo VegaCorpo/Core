@@ -8,6 +8,7 @@
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
+#include "../Common/interfaces/IInputEngine.hpp"
 #include <mutex>
 #include <thread>
 #include "interfaces/ILoaderEngine.hpp"
@@ -99,8 +100,15 @@ void core::Simulation::_launchRenderer()
 {
     auto renderEngine = this->_moduleManager.get_Module<common::IRenderEngine>();
     auto uiEngine = this->_moduleManager.get_Module<common::IUIEngine>();
+    auto inputsEngine = this->_moduleManager.get_Module<common::IInputEngine>();
     renderEngine->init(this->_specificDataRender);
     uiEngine->init(renderEngine->getWindowHandle(), this->_specificDataUI);
+    if (!inputsEngine) {
+        fprintf(stderr, "IInputEngine module is null\n");
+        this->is_running = false;
+        return;
+    }
+    inputsEngine->init();
 
     this->_renderInitCv.notify_all();
 
@@ -129,6 +137,7 @@ void core::Simulation::_launchRenderer()
             }
             renderEngine->update();
             renderEngine->render([this, uiEngine]() { uiEngine->render(); });
+            inputsEngine->update();
         }
     }
 }

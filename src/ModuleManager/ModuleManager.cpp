@@ -3,6 +3,7 @@
 #include "interfaces/IPhysicsEngine.hpp"
 #include "interfaces/IRenderEngine.hpp"
 #include "interfaces/IUIEngine.hpp"
+#include "../Common/interfaces/IInputEngine.hpp"
 
 core::ModuleManagerError core::ModuleManager::loadEngines() noexcept
 {
@@ -19,6 +20,9 @@ core::ModuleManagerError core::ModuleManager::loadEngines() noexcept
         return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
     if (this->_loadModule<common::ILoaderEngine>("plugins/Loader/liborbital_loader.so", "get_engine",
                                                  "get_loader_engine") ==
+        core::ModuleManagerError::FAILED_TO_LOAD_MODULE)
+        return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
+    if (this->_loadModule<common::IInputEngine>("plugins/Inputs/liborbital_inputs", "get_engine", "get_inputs_engine") ==
         core::ModuleManagerError::FAILED_TO_LOAD_MODULE)
         return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
 
