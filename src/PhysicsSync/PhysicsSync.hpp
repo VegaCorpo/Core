@@ -9,6 +9,7 @@
 #include <components/velocity.hpp>
 #include <cstddef>
 #include <entt/entity/registry.hpp>
+#include <types/types.hpp>
 #include <types/World.hpp>
 
 namespace core {
@@ -24,6 +25,7 @@ namespace core {
             static void _prepare(common::SpecificDataPhysics& world, std::size_t capacity);
             static void _gatherRotation(const entt::registry& registry, entt::entity entity,
                                         common::SpecificDataPhysics& world);
+            static void _gatherSettings(const entt::registry& registry, common::SpecificDataPhysics& world);
             static void _scatterOrientation(entt::registry& registry, entt::entity entity,
                                             const common::SpecificDataPhysics& world, std::size_t index);
 

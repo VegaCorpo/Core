@@ -17,6 +17,7 @@ void core::PhysicsSync::gather(const entt::registry& registry, common::SpecificD
         world.radius.push_back(radius);
         core::PhysicsSync::_gatherRotation(registry, entity, world);
     }
+    core::PhysicsSync::_gatherSettings(registry, world);
 }
 
 std::size_t core::PhysicsSync::scatter(entt::registry& registry, const common::SpecificDataPhysics& world)
@@ -81,6 +82,13 @@ void core::PhysicsSync::_gatherRotation(const entt::registry& registry, entt::en
         core::PhysicsSync::_componentOrDefault<common::components::Orientation>(registry, entity));
     world.angularVelocities.push_back(
         core::PhysicsSync::_componentOrDefault<common::components::AngularVelocity>(registry, entity));
+}
+
+void core::PhysicsSync::_gatherSettings(const entt::registry& registry, common::SpecificDataPhysics& world)
+{
+    const auto* integrator = registry.ctx().find<common::IntegratorType>();
+
+    world.integrator = integrator != nullptr ? *integrator : common::DEFAULT_INTEGRATOR;
 }
 
 void core::PhysicsSync::_scatterOrientation(entt::registry& registry, entt::entity entity,

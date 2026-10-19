@@ -16,6 +16,7 @@
 
 namespace core {
     inline constexpr double PHYSICS_DEV_TIME_STEP = 7200.0;
+    inline constexpr double PHYSICS_DEV_TIME_YEAR_STEP = 31557600.0;
 
     enum class SimulationState {
         OK,
@@ -67,6 +68,5 @@ namespace core {
             common::SpecificDataRender _specificDataRender;
             common::SpecificDataUI _specificDataUI;
             TripleBuffering<common::WorldState> _worldState;
-
     };
 } // namespace core
