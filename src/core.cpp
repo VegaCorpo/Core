@@ -3,7 +3,6 @@
 #include <components/mass.hpp>
 #include <components/position.hpp>
 #include <components/velocity.hpp>
-#include <cstdio>
 #include <entt/entity/fwd.hpp>
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
@@ -99,7 +98,12 @@ void core::Simulation::_launchRenderer()
 {
     auto renderEngine = this->_moduleManager.get_Module<common::IRenderEngine>();
     auto uiEngine = this->_moduleManager.get_Module<common::IUIEngine>();
-    renderEngine->init(this->_specificDataRender);
+
+    if (!renderEngine->init(this->_specificDataRender)) {
+        this->is_running = false;
+        return;
+    }
+
     uiEngine->init(renderEngine->getWindowHandle(), this->_specificDataUI);
 
     this->_renderInitCv.notify_all();
