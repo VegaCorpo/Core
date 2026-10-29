@@ -1,14 +1,15 @@
 #pragma once
 
-#include <any>
 #include <expected>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <string>
 #include <typeindex>
+#include <vector>
 #include "interfaces/IModule.hpp"
 #include "src/SharedLoader/SharedLoader.hpp"
+#include "types/ModuleInfo.hpp"
 
 namespace core {
     enum class ModuleManagerError {
@@ -16,9 +17,18 @@ namespace core {
         FAILED_TO_LOAD_MODULE,
     };
 
+    struct PluginInfo {
+            std::string name;
+            std::string version;
+            common::ModuleType type;
+    };
+
     class ModuleManager {
         public:
             ModuleManagerError loadEngines() noexcept;
+            ModuleManagerError loadPluginsVersion() noexcept;
+
+            [[nodiscard]] const std::vector<PluginInfo>& getPluginsInfo() const noexcept { return this->_pluginsInfo; }
 
             template <typename Interface>
             Interface* get_Module()
@@ -32,6 +42,9 @@ namespace core {
         private:
             utils::SharedLoader _loader;
             std::map<std::type_index, std::unique_ptr<common::IModule>> _engines;
+            std::vector<PluginInfo> _pluginsInfo;
+
+            core::ModuleManagerError _loadPluginInfo(const std::string& pluginPath, const std::string& getSymbol);
 
             template <typename Interface>
             core::ModuleManagerError _loadModule(const std::string& pluginPath, const std::string& loadSymbol,
