@@ -10,7 +10,11 @@ void core::SnapshotInterpolator::push(const Snapshot& snapshot)
     this->_blendable = this->_sameBodies();
 }
 
+<<<<<<< HEAD
 const common::WorldState& core::SnapshotInterpolator::get_snapshot(SteadyClock::time_point now)
+=======
+const common::WorldState& core::SnapshotInterpolator::at(SteadyClock::time_point now)
+>>>>>>> 8ceddef (fix: simulation run with accurate time even when late)
 {
     if (this->_blendable)
         this->_blendPositions(this->_progressAt(now));
