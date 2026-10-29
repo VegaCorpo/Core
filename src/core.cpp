@@ -3,6 +3,7 @@
 #include <components/mass.hpp>
 #include <components/position.hpp>
 #include <components/velocity.hpp>
+#include <cstddef>
 #include <entt/entity/fwd.hpp>
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
@@ -40,18 +41,8 @@ void core::Simulation::launchSimulation()
     std::thread physicsThread(&core::Simulation::_launchPhysics, this);
     std::thread rendererThread(&core::Simulation::_launchRenderer, this);
 
-    physicsThread.detach();
-    rendererThread.detach();
-
-    auto prev = std::chrono::high_resolution_clock::now();
-    while (this->is_running) {
-        auto time = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<float> deltaTime = time - prev;
-        prev = time;
-        this->physicsAccumulator += deltaTime.count();
-        this->rendererAccumulator += deltaTime.count();
-        this->_uiAccumulator += deltaTime.count();
-    }
+    rendererThread.join();
+    physicsThread.join();
 }
 
 void core::Simulation::_initPhysics()
@@ -72,32 +63,44 @@ void core::Simulation::_initUI()
 
 void core::Simulation::_launchPhysics()
 {
+    auto* physicsEngine = this->_moduleManager.get_Module<common::IPhysicsEngine>();
+    TickPacer pacer(PHYSICS_TICK_PERIOD);
+
     while (this->is_running) {
-        if (this->physicsAccumulator >= this->physicsThreshold) {
-            this->physicsAccumulator -= this->physicsThreshold;
-            this->_stepPhysics();
-        }
+        pacer.waitNextTick();
+        this->_stepPhysics(*physicsEngine, pacer.lastInterval());
     }
-    this->_moduleManager.get_Module<common::IPhysicsEngine>()->shutdown();
+    physicsEngine->shutdown();
 }
 
-void core::Simulation::_stepPhysics()
+void core::Simulation::_stepPhysics(common::IPhysicsEngine& physicsEngine, Seconds elapsed)
 {
-    this->_moduleManager.get_Module<common::IPhysicsEngine>()->update(core::PHYSICS_DEV_TIME_STEP);
-    this->_syncPhysicsOut();
+    const double stepDuration = physicsEngine.stepDuration();
+    const std::size_t steps = this->_simulationClock.stepsDue(elapsed, stepDuration);
+
+    if (steps == 0)
+        return;
+
+    const SteadyClock::time_point start = SteadyClock::now();
+
+    physicsEngine.update(stepDuration * static_cast<double>(steps));
+    this->_simulationClock.recordCost(SteadyClock::now() - start, steps);
+    this->_syncPhysicsOut(physicsEngine);
 }
 
-void core::Simulation::_syncPhysicsOut()
+void core::Simulation::_syncPhysicsOut(common::IPhysicsEngine& physicsEngine)
 {
-    common::WorldState& worldState = this->_worldState.getWriter();
-    worldState = this->_moduleManager.get_Module<common::IPhysicsEngine>()->publish();
-    this->_worldState.publish();
+    Snapshot& snapshot = this->_snapshots.getWriter();
+
+    snapshot.state = physicsEngine.publish();
+    snapshot.publishedAt = SteadyClock::now();
+    this->_snapshots.publish();
 }
 
 void core::Simulation::_launchRenderer()
 {
-    auto renderEngine = this->_moduleManager.get_Module<common::IRenderEngine>();
-    auto uiEngine = this->_moduleManager.get_Module<common::IUIEngine>();
+    auto* renderEngine = this->_moduleManager.get_Module<common::IRenderEngine>();
+    auto* uiEngine = this->_moduleManager.get_Module<common::IUIEngine>();
 
     if (!renderEngine->init(this->_specificDataRender)) {
         this->is_running = false;
@@ -108,31 +111,51 @@ void core::Simulation::_launchRenderer()
 
     this->_renderInitCv.notify_all();
 
-    while (this->is_running) {
-        if (!renderEngine->isRunning()) {
-            this->is_running = false;
-            break;
-        }
+    TickPacer pacer(RENDER_FRAME_PERIOD);
 
-        if (this->rendererAccumulator >= this->rendererThreshold) {
-            this->rendererAccumulator = 0;
-            {
-                std::scoped_lock lock(this->_renderBufferMutex);
-                if (this->_renderBufferQueue.empty() == false) {
-                    auto renderBuffer = this->_renderBufferQueue.front();
-                    renderEngine->setVertexBuffer(renderBuffer);
-                    this->_renderBufferQueue.pop();
-                }
-            }
-
-            // this->_renderEngine->setVertexBuffer(this->_renderBuffer);
-            if (this->_worldState.tryConsume()) {
-                const common::WorldState& state = this->_worldState.getReader();
-                renderEngine->syncIn(state);
-                uiEngine->update(state);
-            }
-            renderEngine->update();
-            renderEngine->render([this, uiEngine]() { uiEngine->render(); });
-        }
+    while (this->is_running && renderEngine->isRunning()) {
+        pacer.waitNextTick();
+        this->_renderFrame(*renderEngine, *uiEngine);
     }
+    this->is_running = false;
+}
+
+void core::Simulation::_renderFrame(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine)
+{
+    this->_applyPendingRenderBuffer(renderEngine);
+    this->_consumeSnapshot(uiEngine);
+    this->_syncRenderedWorld(renderEngine);
+    renderEngine.update();
+    renderEngine.render([&uiEngine]() { uiEngine.render(); });
+}
+
+void core::Simulation::_applyPendingRenderBuffer(common::IRenderEngine& renderEngine)
+{
+    const std::scoped_lock lock(this->_renderBufferMutex);
+
+    if (this->_renderBufferQueue.empty())
+        return;
+
+    auto renderBuffer = this->_renderBufferQueue.front();
+
+    renderEngine.setVertexBuffer(renderBuffer);
+    this->_renderBufferQueue.pop();
+}
+
+void core::Simulation::_consumeSnapshot(common::IUIEngine& uiEngine)
+{
+    if (!this->_snapshots.tryConsume())
+        return;
+
+    const Snapshot& snapshot = this->_snapshots.getReader();
+
+    this->_interpolator.push(snapshot);
+    uiEngine.update(snapshot.state);
+}
+
+void core::Simulation::_syncRenderedWorld(common::IRenderEngine& renderEngine)
+{
+    if (!this->_interpolator.ready())
+        return;
+    renderEngine.syncIn(this->_interpolator.at(SteadyClock::now()));
 }
