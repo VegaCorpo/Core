@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
@@ -11,12 +12,20 @@
 #include <queue>
 #include <types/RenderDataBuffer.hpp>
 #include "src/Buffers/buffers.hpp"
+#include "src/Interpolation/Snapshot.hpp"
+#include "src/Interpolation/SnapshotInterpolator.hpp"
 #include "src/ModuleManager/ModuleManager.hpp"
+#include "src/Timing/SimulationClock.hpp"
+#include "src/Timing/TickPacer.hpp"
 #include "types/World.hpp"
 
 namespace core {
-    inline constexpr double PHYSICS_DEV_TIME_STEP = 7200.0;
-    inline constexpr double PHYSICS_DEV_TIME_YEAR_STEP = 31557600.0;
+    inline constexpr double SECONDS_PER_DAY = 86400.0;
+    inline constexpr double DEFAULT_SIMULATED_DAYS_PER_SECOND = 365.0;
+    inline constexpr double DEFAULT_TIME_SCALE = DEFAULT_SIMULATED_DAYS_PER_SECOND * SECONDS_PER_DAY;
+    inline constexpr std::chrono::milliseconds PHYSICS_TICK_PERIOD{16};
+    inline constexpr std::chrono::milliseconds PHYSICS_TICK_BUDGET{12};
+    inline constexpr std::chrono::milliseconds RENDER_FRAME_PERIOD{16};
 
     enum class SimulationState {
         OK,
@@ -38,23 +47,19 @@ namespace core {
             void _initRender();
             void _initUI();
 
-            void _stepPhysics();
+            void _stepPhysics(common::IPhysicsEngine& physicsEngine, Seconds elapsed);
+            void _syncPhysicsOut(common::IPhysicsEngine& physicsEngine);
 
-            void _syncPhysicsOut();
+            void _renderFrame(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine);
+            void _applyPendingRenderBuffer(common::IRenderEngine& renderEngine);
+            void _consumeSnapshot(common::IUIEngine& uiEngine);
+            void _syncRenderedWorld(common::IRenderEngine& renderEngine);
 
             ModuleManager _moduleManager;
             entt::registry _registry;
             entt::dispatcher _dispatcher;
 
-            float physicsThreshold = 0.016;
-            std::atomic<float> physicsAccumulator = 0.0;
-
-            float rendererThreshold = 0.016;
             std::atomic<bool> _rendererInit = false;
-            std::atomic<float> rendererAccumulator = 0.0;
-
-            float _uiThreashold = 0.16;
-            std::atomic<float> _uiAccumulator = 0.0;
 
             std::condition_variable _renderInitCv;
             std::mutex _renderBufferMutex;
@@ -67,6 +72,8 @@ namespace core {
             common::SpecificDataPhysics _specificDataPhysics;
             common::SpecificDataRender _specificDataRender;
             common::SpecificDataUI _specificDataUI;
-            TripleBuffering<common::WorldState> _worldState;
+            TripleBuffering<Snapshot> _snapshots;
+            SimulationClock _simulationClock{DEFAULT_TIME_SCALE, PHYSICS_TICK_BUDGET};
+            SnapshotInterpolator _interpolator;
     };
 } // namespace core

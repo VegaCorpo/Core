@@ -47,6 +47,9 @@ add_executable(orbital-engine
     src/RenderSync/RenderSync.cpp
     src/UISync/UISync.cpp
     src/ModuleManager/ModuleManager.cpp
+    src/Timing/TickPacer.cpp
+    src/Timing/SimulationClock.cpp
+    src/Interpolation/SnapshotInterpolator.cpp
 )
 
 target_link_libraries(orbital-engine PRIVATE EnTT::EnTT Common Boost::dll)
