@@ -57,13 +57,9 @@ core::ModuleManagerError core::ModuleManager::_loadPluginInfo(const std::string&
     if (this->reportLoaderError(getInfo) == core::ModuleManagerError::FAILED_TO_LOAD_MODULE)
         return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
 
-    const common::ModuleInfo* info = getInfo.value()();
-    if (info == nullptr) {
-        std::cerr << "No module info in " << pluginPath << std::endl;
-        return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
-    }
+    const common::ModuleInfo info = getInfo.value()();
 
     auto copy = [](const char* value) { return std::string(value != nullptr ? value : "unknown"); };
-    this->_pluginsInfo.push_back({copy(info->name), copy(info->version), info->type});
+    this->_pluginsInfo.push_back({copy(info.name), copy(info.version), info.type});
     return core::ModuleManagerError::SUCCESS;
 }
