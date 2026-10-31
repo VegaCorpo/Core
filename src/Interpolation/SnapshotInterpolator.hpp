@@ -11,7 +11,7 @@ namespace core {
 
             [[nodiscard]] bool ready() const noexcept { return this->_current.has_value(); }
 
-            [[nodiscard]] const common::WorldState& at(SteadyClock::time_point now);
+            [[nodiscard]] const common::WorldState& get_snapshot(SteadyClock::time_point now);
 
         private:
             static constexpr double NO_PROGRESS = 0.0;
