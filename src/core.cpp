@@ -157,5 +157,5 @@ void core::Simulation::_syncRenderedWorld(common::IRenderEngine& renderEngine)
 {
     if (!this->_interpolator.ready())
         return;
-    renderEngine.syncIn(this->_interpolator.at(SteadyClock::now()));
+    renderEngine.syncIn(this->_interpolator.get_snapshot(SteadyClock::now()));
 }
