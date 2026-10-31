@@ -101,13 +101,12 @@ void core::Simulation::_launchRenderer()
 {
     auto* renderEngine = this->_moduleManager.get_Module<common::IRenderEngine>();
     auto* uiEngine = this->_moduleManager.get_Module<common::IUIEngine>();
+    auto* inputsEngine = this->_moduleManager.get_Module<common::IInputsEngine>();
 
-    if (!renderEngine->init(this->_specificDataRender)) {
+    if (!this->_initRenderingModules(*renderEngine, *uiEngine, *inputsEngine)) {
         this->is_running = false;
         return;
     }
-
-    uiEngine->init(renderEngine->getWindowHandle(), this->_specificDataUI);
 
     this->_renderInitCv.notify_all();
 
@@ -115,18 +114,37 @@ void core::Simulation::_launchRenderer()
 
     while (this->is_running && renderEngine->isRunning()) {
         pacer.waitNextTick();
-        this->_renderFrame(*renderEngine, *uiEngine);
+        this->_renderFrame(*renderEngine, *uiEngine, *inputsEngine);
     }
     this->is_running = false;
 }
 
-void core::Simulation::_renderFrame(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine)
+bool core::Simulation::_initRenderingModules(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine,
+                                             common::IInputsEngine& inputsEngine)
+{
+    if (!renderEngine.init(this->_specificDataRender))
+        return false;
+
+    uiEngine.init(renderEngine.getWindowHandle(), this->_specificDataUI);
+    return inputsEngine.init(renderEngine.getWindowHandle());
+}
+
+void core::Simulation::_renderFrame(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine,
+                                    common::IInputsEngine& inputsEngine)
 {
     this->_applyPendingRenderBuffer(renderEngine);
     this->_consumeSnapshot(uiEngine);
     this->_syncRenderedWorld(renderEngine);
+    core::Simulation::_dispatchActions(inputsEngine, renderEngine);
     renderEngine.update();
     renderEngine.render([&uiEngine]() { uiEngine.render(); });
+}
+
+void core::Simulation::_dispatchActions(common::IInputsEngine& inputsEngine, common::IRenderEngine& renderEngine)
+{
+    std::queue<common::Action> actions = inputsEngine.poll();
+
+    renderEngine.handleActions(actions);
 }
 
 void core::Simulation::_applyPendingRenderBuffer(common::IRenderEngine& renderEngine)
