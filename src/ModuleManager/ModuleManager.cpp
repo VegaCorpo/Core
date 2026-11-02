@@ -1,4 +1,5 @@
 #include "src/ModuleManager/ModuleManager.hpp"
+#include "interfaces/IInputsEngine.hpp"
 #include "interfaces/ILoaderEngine.hpp"
 #include "interfaces/IPhysicsEngine.hpp"
 #include "interfaces/IRenderEngine.hpp"
@@ -6,21 +7,12 @@
 
 core::ModuleManagerError core::ModuleManager::loadEngines() noexcept
 {
-    if (this->_loadModule<common::IPhysicsEngine>("plugins/Physics/liborbital_physics", "get_engine",
-                                                  "get_physics_engine") ==
-        core::ModuleManagerError::FAILED_TO_LOAD_MODULE)
-        return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
-    if (this->_loadModule<common::IRenderEngine>("plugins/Renderer/liborbital_render", "get_engine",
-                                                 "get_render_engine") ==
-        core::ModuleManagerError::FAILED_TO_LOAD_MODULE)
-        return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
-    if (this->_loadModule<common::IUIEngine>("plugins/UI/liborbital_ui", "get_engine", "get_ui_engine") ==
-        core::ModuleManagerError::FAILED_TO_LOAD_MODULE)
-        return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
-    if (this->_loadModule<common::ILoaderEngine>("plugins/Loader/liborbital_loader.so", "get_engine",
-                                                 "get_loader_engine") ==
-        core::ModuleManagerError::FAILED_TO_LOAD_MODULE)
-        return core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
+    const bool allLoaded =
+        this->_tryLoad<common::IPhysicsEngine>("plugins/Physics/liborbital_physics", "get_physics_engine") &&
+        this->_tryLoad<common::IRenderEngine>("plugins/Renderer/liborbital_render", "get_render_engine") &&
+        this->_tryLoad<common::IUIEngine>("plugins/UI/liborbital_ui", "get_ui_engine") &&
+        this->_tryLoad<common::ILoaderEngine>("plugins/Loader/liborbital_loader.so", "get_loader_engine") &&
+        this->_tryLoad<common::IInputsEngine>("plugins/Inputs/liborbital_inputs", "get_inputs_engine");
 
-    return core::ModuleManagerError::SUCCESS;
+    return allLoaded ? core::ModuleManagerError::SUCCESS : core::ModuleManagerError::FAILED_TO_LOAD_MODULE;
 }

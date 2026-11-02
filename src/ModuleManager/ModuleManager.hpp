@@ -30,8 +30,17 @@ namespace core {
             }
 
         private:
+            static constexpr const char* ENGINE_FACTORY_SYMBOL = "get_engine";
+
             utils::SharedLoader _loader;
             std::map<std::type_index, std::unique_ptr<common::IModule>> _engines;
+
+            template <typename Interface>
+            [[nodiscard]] bool _tryLoad(const std::string& pluginPath, const std::string& moduleName)
+            {
+                return this->_loadModule<Interface>(pluginPath, ENGINE_FACTORY_SYMBOL, moduleName) ==
+                    core::ModuleManagerError::SUCCESS;
+            }
 
             template <typename Interface>
             core::ModuleManagerError _loadModule(const std::string& pluginPath, const std::string& loadSymbol,
@@ -66,4 +75,3 @@ namespace core {
             }
     };
 } // namespace core
-

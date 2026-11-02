@@ -5,6 +5,7 @@
 #include <condition_variable>
 #include <entt/entity/registry.hpp>
 #include <entt/signal/dispatcher.hpp>
+#include <interfaces/IInputsEngine.hpp>
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
@@ -50,7 +51,12 @@ namespace core {
             void _stepPhysics(common::IPhysicsEngine& physicsEngine, Seconds elapsed);
             void _syncPhysicsOut(common::IPhysicsEngine& physicsEngine);
 
-            void _renderFrame(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine);
+            [[nodiscard]] bool _initRenderingModules(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine,
+                                                     common::IInputsEngine& inputsEngine);
+
+            void _renderFrame(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine,
+                              common::IInputsEngine& inputsEngine);
+            static void _dispatchActions(common::IInputsEngine& inputsEngine, common::IRenderEngine& renderEngine);
             void _applyPendingRenderBuffer(common::IRenderEngine& renderEngine);
             void _consumeSnapshot(common::IUIEngine& uiEngine);
             void _syncRenderedWorld(common::IRenderEngine& renderEngine);

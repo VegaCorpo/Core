@@ -34,7 +34,7 @@ namespace utils {
                     this->_loadedLib[libName] = std::function<T>(sym);
                 }
                 catch (const boost::wrapexcept<boost::system::system_error>& error) {
-                    std::unexpected(std::format("Library loading failed {}", error.what()));
+                    return std::unexpected(std::format("Library loading failed {}", error.what()));
                 }
                 return {};
             };
