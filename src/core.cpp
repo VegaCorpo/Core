@@ -22,6 +22,10 @@
 
 core::SimulationState core::Simulation::initializeCore(const std::string& filename) noexcept
 {
+    if (this->_moduleManager.loadPluginsVersion() != core::ModuleManagerError::SUCCESS) {
+        return core::SimulationState::SHARED_LOADER_ERROR;
+    }
+
     if (this->_moduleManager.loadEngines() != core::ModuleManagerError::SUCCESS)
         return core::SimulationState::SHARED_LOADER_ERROR;
 
