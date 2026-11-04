@@ -8,7 +8,6 @@
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
-#include <iostream>
 #include <mutex>
 #include <thread>
 #include "interfaces/ILoaderEngine.hpp"
@@ -25,10 +24,6 @@ core::SimulationState core::Simulation::initializeCore(const std::string& filena
 {
     if (this->_moduleManager.loadPluginsVersion() != core::ModuleManagerError::SUCCESS) {
         return core::SimulationState::SHARED_LOADER_ERROR;
-    }
-    for (const auto &it : this->_moduleManager.getPluginsInfo()) {
-        std::cout << "name = " << it.name << "\n";
-        std::cout << "version = " << it.version << "\n";
     }
 
     if (this->_moduleManager.loadEngines() != core::ModuleManagerError::SUCCESS)
