@@ -1,14 +1,9 @@
 #include <chrono>
-#include <components/acceleration.hpp>
-#include <components/mass.hpp>
-#include <components/position.hpp>
-#include <components/velocity.hpp>
 #include <cstddef>
-#include <entt/entity/fwd.hpp>
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
-#include <mutex>
+#include <queue>
 #include <thread>
 #include "interfaces/ILoaderEngine.hpp"
 #include "src/ModuleManager/ModuleManager.hpp"
@@ -29,13 +24,14 @@ core::SimulationState core::Simulation::initializeCore(const std::string& filena
     if (this->_moduleManager.loadEngines() != core::ModuleManagerError::SUCCESS)
         return core::SimulationState::SHARED_LOADER_ERROR;
 
-    if (this->_moduleManager.get_Module<common::ILoaderEngine>()->createScene(&this->_registry, filename) !=
-        common::LoaderStatus::SUCCESS)
+    const auto scene = this->_moduleManager.get_Module<common::ILoaderEngine>()->createScene(filename);
+
+    if (!scene)
         return core::SimulationState::INITIALIZATION_ERROR;
 
-    this->_initPhysics();
-    this->_initRender();
-    this->_initUI();
+    this->_initPhysics(*scene);
+    this->_initRender(*scene);
+    this->_initUI(*scene);
 
     return core::SimulationState::OK;
 }
@@ -49,20 +45,20 @@ void core::Simulation::launchSimulation()
     physicsThread.join();
 }
 
-void core::Simulation::_initPhysics()
+void core::Simulation::_initPhysics(const common::SceneDescription& scene)
 {
-    core::PhysicsSync::gather(this->_registry, this->_specificDataPhysics);
+    core::PhysicsSync::gather(scene, this->_specificDataPhysics);
     this->_moduleManager.get_Module<common::IPhysicsEngine>()->init(this->_specificDataPhysics);
 }
 
-void core::Simulation::_initRender()
+void core::Simulation::_initRender(const common::SceneDescription& scene)
 {
-    core::RenderSync::gather(this->_registry, this->_specificDataRender);
+    core::RenderSync::gather(scene, this->_specificDataRender);
 }
 
-void core::Simulation::_initUI()
+void core::Simulation::_initUI(const common::SceneDescription& scene)
 {
-    core::UISync::gather(this->_registry, this->_specificDataUI);
+    core::UISync::gather(scene, this->_specificDataUI);
 }
 
 void core::Simulation::_launchPhysics()
@@ -112,8 +108,6 @@ void core::Simulation::_launchRenderer()
         return;
     }
 
-    this->_renderInitCv.notify_all();
-
     TickPacer pacer(RENDER_FRAME_PERIOD);
 
     while (this->is_running && renderEngine->isRunning()) {
@@ -136,7 +130,6 @@ bool core::Simulation::_initRenderingModules(common::IRenderEngine& renderEngine
 void core::Simulation::_renderFrame(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine,
                                     common::IInputsEngine& inputsEngine)
 {
-    this->_applyPendingRenderBuffer(renderEngine);
     this->_consumeSnapshot(uiEngine);
     this->_syncRenderedWorld(renderEngine);
     core::Simulation::_dispatchActions(inputsEngine, renderEngine);
@@ -149,19 +142,6 @@ void core::Simulation::_dispatchActions(common::IInputsEngine& inputsEngine, com
     std::queue<common::Action> actions = inputsEngine.poll();
 
     renderEngine.handleActions(actions);
-}
-
-void core::Simulation::_applyPendingRenderBuffer(common::IRenderEngine& renderEngine)
-{
-    const std::scoped_lock lock(this->_renderBufferMutex);
-
-    if (this->_renderBufferQueue.empty())
-        return;
-
-    auto renderBuffer = this->_renderBufferQueue.front();
-
-    renderEngine.setVertexBuffer(renderBuffer);
-    this->_renderBufferQueue.pop();
 }
 
 void core::Simulation::_consumeSnapshot(common::IUIEngine& uiEngine)

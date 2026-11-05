@@ -11,7 +11,6 @@ set(CPM_USE_LOCAL_PACKAGES ON)
 
 include(cmake/CPM.cmake)
 CPMUsePackageLock(package-lock.cmake)
-CPMGetPackage(EnTT)
 CPMGetPackage(Common)
 CPMGetPackage(Boost)
 
@@ -52,7 +51,7 @@ add_executable(orbital-engine
     src/Interpolation/SnapshotInterpolator.cpp
 )
 
-target_link_libraries(orbital-engine PRIVATE EnTT::EnTT Common Boost::dll)
+target_link_libraries(orbital-engine PRIVATE Common Boost::dll)
 
 target_include_directories(orbital-engine PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/
