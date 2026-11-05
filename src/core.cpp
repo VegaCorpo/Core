@@ -139,7 +139,7 @@ void core::Simulation::_renderFrame(common::IRenderEngine& renderEngine, common:
 
 void core::Simulation::_dispatchActions(common::IInputsEngine& inputsEngine, common::IRenderEngine& renderEngine)
 {
-    std::queue<common::Action> actions = inputsEngine.poll();
+    std::queue<common::InputAction> actions = inputsEngine.poll();
 
     renderEngine.handleActions(actions);
 }
