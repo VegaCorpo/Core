@@ -13,16 +13,6 @@
 namespace utils {
     class SharedLoader {
         public:
-            class SharedLoaderError : public std::exception {
-                public:
-                    explicit SharedLoaderError(std::string msg) : _msg(std::move(msg)) {}
-
-                    [[nodiscard]] const char* what() const noexcept override { return this->_msg.c_str(); };
-
-                private:
-                    std::string _msg;
-            };
-
             template <typename T>
             std::expected<void, std::string> load(const std::string& pathToLib, const std::string& symbole, const std::string& libName)
             {

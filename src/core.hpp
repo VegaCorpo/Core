@@ -2,16 +2,11 @@
 
 #include <atomic>
 #include <chrono>
-#include <condition_variable>
-#include <entt/entity/registry.hpp>
-#include <entt/signal/dispatcher.hpp>
 #include <interfaces/IInputsEngine.hpp>
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
-#include <mutex>
-#include <queue>
-#include <types/RenderDataBuffer.hpp>
+#include <types/Scene.hpp>
 #include "src/Buffers/buffers.hpp"
 #include "src/Interpolation/Snapshot.hpp"
 #include "src/Interpolation/SnapshotInterpolator.hpp"
@@ -32,7 +27,6 @@ namespace core {
         OK,
         INITIALIZATION_ERROR,
         SHARED_LOADER_ERROR,
-        SIMULATION_ERROR,
     };
 
     class Simulation {
@@ -44,9 +38,9 @@ namespace core {
             void _launchPhysics();
             void _launchRenderer();
 
-            void _initPhysics();
-            void _initRender();
-            void _initUI();
+            void _initPhysics(const common::SceneDescription& scene);
+            void _initRender(const common::SceneDescription& scene);
+            void _initUI(const common::SceneDescription& scene);
 
             void _stepPhysics(common::IPhysicsEngine& physicsEngine, Seconds elapsed);
             void _syncPhysicsOut(common::IPhysicsEngine& physicsEngine);
@@ -57,21 +51,10 @@ namespace core {
             void _renderFrame(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine,
                               common::IInputsEngine& inputsEngine);
             static void _dispatchActions(common::IInputsEngine& inputsEngine, common::IRenderEngine& renderEngine);
-            void _applyPendingRenderBuffer(common::IRenderEngine& renderEngine);
             void _consumeSnapshot(common::IUIEngine& uiEngine);
             void _syncRenderedWorld(common::IRenderEngine& renderEngine);
 
             ModuleManager _moduleManager;
-            entt::registry _registry;
-            entt::dispatcher _dispatcher;
-
-            std::atomic<bool> _rendererInit = false;
-
-            std::condition_variable _renderInitCv;
-            std::mutex _renderBufferMutex;
-            std::mutex _registryMutex;
-            std::mutex _initMutex;
-            std::queue<common::RenderDataBuffer> _renderBufferQueue;
 
             std::atomic<bool> is_running = true;
 

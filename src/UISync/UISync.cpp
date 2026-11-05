@@ -1,29 +1,21 @@
 #include "UISync.hpp"
-#include "src/UISync/UISync.hpp"
-#include <algorithm>
-#include <entt/entity/entity.hpp>
+#include <cstddef>
 
-void core::UISync::gather(const entt::registry& registry, common::SpecificDataUI& data)
+void core::UISync::gather(const common::SceneDescription& scene, common::SpecificDataUI& data)
 {
-    const auto view = core::UISync::_renderableView(registry);
-    const std::size_t hint = view.size_hint();
+    const std::size_t count = scene.bodies.size();
 
     data.entitiesId.clear();
     data.names.clear();
     data.masses.clear();
 
-    data.entitiesId.reserve(hint);
-    data.names.reserve(hint);
-    data.masses.reserve(hint);
+    data.entitiesId.reserve(count);
+    data.names.reserve(count);
+    data.masses.reserve(count);
 
-    for (const auto [entity, name, masse] : view.each()) {
-        data.entitiesId.push_back(core::UISync::_toIdentifier(entity));
-        data.names.push_back(name);
-        data.masses.push_back(masse);
+    for (const common::BodyDescription& body : scene.bodies) {
+        data.entitiesId.push_back(body.id);
+        data.names.push_back(body.name);
+        data.masses.push_back(body.mass);
     }
-}
-
-std::size_t core::UISync::consistentSize(const common::SpecificDataUI& data) noexcept
-{
-    return std::min({data.entitiesId.size(), data.names.size(), data.masses.size()});
 }
