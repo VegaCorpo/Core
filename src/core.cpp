@@ -133,13 +133,14 @@ void core::Simulation::_renderFrame(common::IRenderEngine& renderEngine, common:
     this->_consumeSnapshot(uiEngine);
     this->_syncRenderedWorld(renderEngine);
     core::Simulation::_dispatchActions(inputsEngine, renderEngine);
+    renderEngine.syncUIData(uiEngine.publishDataUi());
     renderEngine.update();
     renderEngine.render([&uiEngine]() { uiEngine.render(); });
 }
 
 void core::Simulation::_dispatchActions(common::IInputsEngine& inputsEngine, common::IRenderEngine& renderEngine)
 {
-    std::queue<common::Action> actions = inputsEngine.poll();
+    std::queue<common::InputAction> actions = inputsEngine.poll();
 
     renderEngine.handleActions(actions);
 }
