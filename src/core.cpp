@@ -133,6 +133,7 @@ void core::Simulation::_renderFrame(common::IRenderEngine& renderEngine, common:
     this->_consumeSnapshot(uiEngine);
     this->_syncRenderedWorld(renderEngine);
     core::Simulation::_dispatchActions(inputsEngine, renderEngine);
+    renderEngine.syncUIData(uiEngine.publishDataUi());
     renderEngine.update();
     renderEngine.render([&uiEngine]() { uiEngine.render(); });
 }
