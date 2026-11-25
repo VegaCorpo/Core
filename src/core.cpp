@@ -39,9 +39,8 @@ core::SimulationState core::Simulation::initializeCore(const std::string& filena
 void core::Simulation::launchSimulation()
 {
     std::thread physicsThread(&core::Simulation::_launchPhysics, this);
-    std::thread rendererThread(&core::Simulation::_launchRenderer, this);
 
-    rendererThread.join();
+    this->_launchRenderer();
     physicsThread.join();
 }
 
