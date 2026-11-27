@@ -1,11 +1,11 @@
 #pragma once
 
-#include <types/Scene.hpp>
 #include <types/World.hpp>
+#include "src/Catalog/BodyCatalog.hpp"
 
 namespace core {
     class RenderSync {
         public:
-            static void gather(const common::SceneDescription& scene, common::SpecificDataRender& data);
+            static void gather(const core::BodyCatalog& catalog, common::SpecificDataRender& data);
     };
 } // namespace core

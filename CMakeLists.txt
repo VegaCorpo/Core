@@ -42,6 +42,7 @@ endif()
 add_executable(orbital-engine
     src/main.cpp
     src/core.cpp
+    src/Catalog/CatalogSync.cpp
     src/PhysicsSync/PhysicsSync.cpp
     src/RenderSync/RenderSync.cpp
     src/UISync/UISync.cpp

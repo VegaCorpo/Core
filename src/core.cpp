@@ -6,6 +6,7 @@
 #include <queue>
 #include <thread>
 #include "interfaces/ILoaderEngine.hpp"
+#include "src/Catalog/CatalogSync.hpp"
 #include "src/ModuleManager/ModuleManager.hpp"
 #include "src/PhysicsSync/PhysicsSync.hpp"
 #include "src/RenderSync/RenderSync.hpp"
@@ -29,9 +30,10 @@ core::SimulationState core::Simulation::initializeCore(const std::string& filena
     if (!scene)
         return core::SimulationState::INITIALIZATION_ERROR;
 
+    this->_initCatalog(*scene);
     this->_initPhysics(*scene);
-    this->_initRender(*scene);
-    this->_initUI(*scene);
+    this->_initRender();
+    this->_initUI();
 
     return core::SimulationState::OK;
 }
@@ -44,20 +46,25 @@ void core::Simulation::launchSimulation()
     physicsThread.join();
 }
 
+void core::Simulation::_initCatalog(const common::SceneDescription& scene)
+{
+    core::CatalogSync::gather(scene, this->_catalog);
+}
+
 void core::Simulation::_initPhysics(const common::SceneDescription& scene)
 {
     core::PhysicsSync::gather(scene, this->_specificDataPhysics);
     this->_moduleManager.get_Module<common::IPhysicsEngine>()->init(this->_specificDataPhysics);
 }
 
-void core::Simulation::_initRender(const common::SceneDescription& scene)
+void core::Simulation::_initRender()
 {
-    core::RenderSync::gather(scene, this->_specificDataRender);
+    core::RenderSync::gather(this->_catalog, this->_specificDataRender);
 }
 
-void core::Simulation::_initUI(const common::SceneDescription& scene)
+void core::Simulation::_initUI()
 {
-    core::UISync::gather(scene, this->_specificDataUI);
+    core::UISync::gather(this->_catalog, this->_specificDataUI);
 }
 
 void core::Simulation::_launchPhysics()

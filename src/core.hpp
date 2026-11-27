@@ -8,6 +8,7 @@
 #include <interfaces/IUIEngine.hpp>
 #include <types/Scene.hpp>
 #include "src/Buffers/buffers.hpp"
+#include "src/Catalog/BodyCatalog.hpp"
 #include "src/Interpolation/Snapshot.hpp"
 #include "src/Interpolation/SnapshotInterpolator.hpp"
 #include "src/ModuleManager/ModuleManager.hpp"
@@ -38,9 +39,10 @@ namespace core {
             void _launchPhysics();
             void _launchRenderer();
 
+            void _initCatalog(const common::SceneDescription& scene);
             void _initPhysics(const common::SceneDescription& scene);
-            void _initRender(const common::SceneDescription& scene);
-            void _initUI(const common::SceneDescription& scene);
+            void _initRender();
+            void _initUI();
 
             void _stepPhysics(common::IPhysicsEngine& physicsEngine, Seconds elapsed);
             void _syncPhysicsOut(common::IPhysicsEngine& physicsEngine);
@@ -58,6 +60,7 @@ namespace core {
 
             std::atomic<bool> is_running = true;
 
+            BodyCatalog _catalog;
             common::SpecificDataPhysics _specificDataPhysics;
             common::SpecificDataRender _specificDataRender;
             common::SpecificDataUI _specificDataUI;
