@@ -158,7 +158,7 @@ void core::Simulation::_renderFrame(common::IRenderEngine& renderEngine, common:
     renderEngine.syncUIData(uiEngine.publishDataUi());
     renderEngine.update();
     renderEngine.render([&uiEngine]() { uiEngine.render(); });
-    this->_applyEdits(uiEngine);
+    this->_applyEdits(renderEngine, uiEngine);
 }
 
 void core::Simulation::_dispatchActions(common::IInputsEngine& inputsEngine, common::IRenderEngine& renderEngine)
@@ -179,15 +179,28 @@ void core::Simulation::_consumeSnapshot(common::IUIEngine& uiEngine)
     uiEngine.update(snapshot.state);
 }
 
-void core::Simulation::_applyEdits(common::IUIEngine& uiEngine)
+void core::Simulation::_applyEdits(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine)
 {
     std::queue<common::BodyPatch> edits = uiEngine.pollEdits();
+    bool accepted = false;
 
     while (!edits.empty()) {
-        if (core::CatalogEdit::apply(this->_catalog, edits.front()))
+        if (core::CatalogEdit::apply(this->_catalog, edits.front())) {
             this->_edits.push(edits.front());
+            accepted = true;
+        }
         edits.pop();
     }
+    if (accepted)
+        this->_publishBodies(renderEngine, uiEngine);
+}
+
+void core::Simulation::_publishBodies(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine)
+{
+    core::RenderSync::gather(this->_catalog, this->_specificDataRender);
+    core::UISync::gather(this->_catalog, this->_specificDataUI);
+    renderEngine.updateBodies(this->_specificDataRender);
+    uiEngine.updateBodies(this->_specificDataUI);
 }
 
 void core::Simulation::_syncRenderedWorld(common::IRenderEngine& renderEngine)
