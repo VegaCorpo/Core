@@ -6,6 +6,7 @@
 #include <queue>
 #include <thread>
 #include "interfaces/ILoaderEngine.hpp"
+#include "src/Catalog/CatalogEdit.hpp"
 #include "src/Catalog/CatalogSync.hpp"
 #include "src/ModuleManager/ModuleManager.hpp"
 #include "src/PhysicsSync/PhysicsSync.hpp"
@@ -142,6 +143,7 @@ void core::Simulation::_renderFrame(common::IRenderEngine& renderEngine, common:
     renderEngine.syncUIData(uiEngine.publishDataUi());
     renderEngine.update();
     renderEngine.render([&uiEngine]() { uiEngine.render(); });
+    this->_applyEdits(uiEngine);
 }
 
 void core::Simulation::_dispatchActions(common::IInputsEngine& inputsEngine, common::IRenderEngine& renderEngine)
@@ -160,6 +162,16 @@ void core::Simulation::_consumeSnapshot(common::IUIEngine& uiEngine)
 
     this->_interpolator.push(snapshot);
     uiEngine.update(snapshot.state);
+}
+
+void core::Simulation::_applyEdits(common::IUIEngine& uiEngine)
+{
+    std::queue<common::BodyPatch> edits = uiEngine.pollEdits();
+
+    while (!edits.empty()) {
+        core::CatalogEdit::apply(this->_catalog, edits.front());
+        edits.pop();
+    }
 }
 
 void core::Simulation::_syncRenderedWorld(common::IRenderEngine& renderEngine)

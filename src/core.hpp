@@ -54,6 +54,7 @@ namespace core {
                               common::IInputsEngine& inputsEngine);
             static void _dispatchActions(common::IInputsEngine& inputsEngine, common::IRenderEngine& renderEngine);
             void _consumeSnapshot(common::IUIEngine& uiEngine);
+            void _applyEdits(common::IUIEngine& uiEngine);
             void _syncRenderedWorld(common::IRenderEngine& renderEngine);
 
             ModuleManager _moduleManager;
