@@ -5,6 +5,7 @@
 #include <interfaces/IUIEngine.hpp>
 #include <queue>
 #include <thread>
+#include <vector>
 #include "interfaces/ILoaderEngine.hpp"
 #include "src/Catalog/CatalogEdit.hpp"
 #include "src/Catalog/CatalogSync.hpp"
@@ -75,9 +76,23 @@ void core::Simulation::_launchPhysics()
 
     while (this->is_running) {
         pacer.waitNextTick();
+        this->_applyPendingEdits(*physicsEngine);
         this->_stepPhysics(*physicsEngine, pacer.lastInterval());
     }
     physicsEngine->shutdown();
+}
+
+void core::Simulation::_applyPendingEdits(common::IPhysicsEngine& physicsEngine)
+{
+    const std::vector<common::BodyPatch> patches = this->_edits.takeAll();
+
+    if (patches.empty())
+        return;
+
+    core::PhysicsSync::absorb(physicsEngine.publish(), this->_specificDataPhysics);
+    for (const common::BodyPatch& patch : patches)
+        core::PhysicsSync::apply(patch, this->_specificDataPhysics);
+    physicsEngine.syncIn(this->_specificDataPhysics);
 }
 
 void core::Simulation::_stepPhysics(common::IPhysicsEngine& physicsEngine, Seconds elapsed)
@@ -169,7 +184,8 @@ void core::Simulation::_applyEdits(common::IUIEngine& uiEngine)
     std::queue<common::BodyPatch> edits = uiEngine.pollEdits();
 
     while (!edits.empty()) {
-        core::CatalogEdit::apply(this->_catalog, edits.front());
+        if (core::CatalogEdit::apply(this->_catalog, edits.front()))
+            this->_edits.push(edits.front());
         edits.pop();
     }
 }

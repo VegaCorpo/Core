@@ -6,7 +6,9 @@
 #include <interfaces/IPhysicsEngine.hpp>
 #include <interfaces/IRenderEngine.hpp>
 #include <interfaces/IUIEngine.hpp>
+#include <types/BodyPatch.hpp>
 #include <types/Scene.hpp>
+#include "src/Buffers/LockedQueue.hpp"
 #include "src/Buffers/buffers.hpp"
 #include "src/Catalog/BodyCatalog.hpp"
 #include "src/Interpolation/Snapshot.hpp"
@@ -44,6 +46,7 @@ namespace core {
             void _initRender();
             void _initUI();
 
+            void _applyPendingEdits(common::IPhysicsEngine& physicsEngine);
             void _stepPhysics(common::IPhysicsEngine& physicsEngine, Seconds elapsed);
             void _syncPhysicsOut(common::IPhysicsEngine& physicsEngine);
 
@@ -66,6 +69,7 @@ namespace core {
             common::SpecificDataRender _specificDataRender;
             common::SpecificDataUI _specificDataUI;
             TripleBuffering<Snapshot> _snapshots;
+            LockedQueue<common::BodyPatch> _edits;
             SimulationClock _simulationClock{DEFAULT_TIME_SCALE, PHYSICS_TICK_BUDGET};
             SnapshotInterpolator _interpolator;
     };
