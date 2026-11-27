@@ -5,7 +5,10 @@
 #include <interfaces/IUIEngine.hpp>
 #include <queue>
 #include <thread>
+#include <vector>
 #include "interfaces/ILoaderEngine.hpp"
+#include "src/Catalog/CatalogEdit.hpp"
+#include "src/Catalog/CatalogSync.hpp"
 #include "src/ModuleManager/ModuleManager.hpp"
 #include "src/PhysicsSync/PhysicsSync.hpp"
 #include "src/RenderSync/RenderSync.hpp"
@@ -29,9 +32,10 @@ core::SimulationState core::Simulation::initializeCore(const std::string& filena
     if (!scene)
         return core::SimulationState::INITIALIZATION_ERROR;
 
+    this->_initCatalog(*scene);
     this->_initPhysics(*scene);
-    this->_initRender(*scene);
-    this->_initUI(*scene);
+    this->_initRender();
+    this->_initUI();
 
     return core::SimulationState::OK;
 }
@@ -39,10 +43,14 @@ core::SimulationState core::Simulation::initializeCore(const std::string& filena
 void core::Simulation::launchSimulation()
 {
     std::thread physicsThread(&core::Simulation::_launchPhysics, this);
-    std::thread rendererThread(&core::Simulation::_launchRenderer, this);
 
-    rendererThread.join();
+    this->_launchRenderer();
     physicsThread.join();
+}
+
+void core::Simulation::_initCatalog(const common::SceneDescription& scene)
+{
+    core::CatalogSync::gather(scene, this->_catalog);
 }
 
 void core::Simulation::_initPhysics(const common::SceneDescription& scene)
@@ -51,14 +59,14 @@ void core::Simulation::_initPhysics(const common::SceneDescription& scene)
     this->_moduleManager.get_Module<common::IPhysicsEngine>()->init(this->_specificDataPhysics);
 }
 
-void core::Simulation::_initRender(const common::SceneDescription& scene)
+void core::Simulation::_initRender()
 {
-    core::RenderSync::gather(scene, this->_specificDataRender);
+    core::RenderSync::gather(this->_catalog, this->_specificDataRender);
 }
 
-void core::Simulation::_initUI(const common::SceneDescription& scene)
+void core::Simulation::_initUI()
 {
-    core::UISync::gather(scene, this->_specificDataUI);
+    core::UISync::gather(this->_catalog, this->_specificDataUI);
 }
 
 void core::Simulation::_launchPhysics()
@@ -68,9 +76,23 @@ void core::Simulation::_launchPhysics()
 
     while (this->is_running) {
         pacer.waitNextTick();
+        this->_applyPendingEdits(*physicsEngine);
         this->_stepPhysics(*physicsEngine, pacer.lastInterval());
     }
     physicsEngine->shutdown();
+}
+
+void core::Simulation::_applyPendingEdits(common::IPhysicsEngine& physicsEngine)
+{
+    const std::vector<common::BodyPatch> patches = this->_edits.takeAll();
+
+    if (patches.empty())
+        return;
+
+    core::PhysicsSync::absorb(physicsEngine.publish(), this->_specificDataPhysics);
+    for (const common::BodyPatch& patch : patches)
+        core::PhysicsSync::apply(patch, this->_specificDataPhysics);
+    physicsEngine.syncIn(this->_specificDataPhysics);
 }
 
 void core::Simulation::_stepPhysics(common::IPhysicsEngine& physicsEngine, Seconds elapsed)
@@ -136,6 +158,7 @@ void core::Simulation::_renderFrame(common::IRenderEngine& renderEngine, common:
     renderEngine.syncUIData(uiEngine.publishDataUi());
     renderEngine.update();
     renderEngine.render([&uiEngine]() { uiEngine.render(); });
+    this->_applyEdits(renderEngine, uiEngine);
 }
 
 void core::Simulation::_dispatchActions(common::IInputsEngine& inputsEngine, common::IRenderEngine& renderEngine)
@@ -154,6 +177,30 @@ void core::Simulation::_consumeSnapshot(common::IUIEngine& uiEngine)
 
     this->_interpolator.push(snapshot);
     uiEngine.update(snapshot.state);
+}
+
+void core::Simulation::_applyEdits(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine)
+{
+    std::queue<common::BodyPatch> edits = uiEngine.pollEdits();
+    bool accepted = false;
+
+    while (!edits.empty()) {
+        if (core::CatalogEdit::apply(this->_catalog, edits.front())) {
+            this->_edits.push(edits.front());
+            accepted = true;
+        }
+        edits.pop();
+    }
+    if (accepted)
+        this->_publishBodies(renderEngine, uiEngine);
+}
+
+void core::Simulation::_publishBodies(common::IRenderEngine& renderEngine, common::IUIEngine& uiEngine)
+{
+    core::RenderSync::gather(this->_catalog, this->_specificDataRender);
+    core::UISync::gather(this->_catalog, this->_specificDataUI);
+    renderEngine.updateBodies(this->_specificDataRender);
+    uiEngine.updateBodies(this->_specificDataUI);
 }
 
 void core::Simulation::_syncRenderedWorld(common::IRenderEngine& renderEngine)
